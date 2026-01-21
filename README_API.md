@@ -22,11 +22,11 @@ REST API сервер для доступа к телеметрии контро
 ```python
 # TCP Listener configuration
 LISTENER_HOST = "0.0.0.0"
-LISTENER_PORT = 3333
+LISTENER_PORT = 8760
 
 # API Server configuration
 API_HOST = "0.0.0.0"
-API_PORT = 7777
+API_PORT = 8765
 
 # Language settings
 DEFAULT_LANGUAGE = "uk"  # uk, en, ru
@@ -67,9 +67,9 @@ pm2 stop all                # Остановка
 ## API Endpoints
 
 ### Web Interface / Веб-інтерфейс
-- **http://localhost:7777/** - API Information / Інформація про API
-- **http://localhost:7777/api_test.html** - Interactive API Tester / Інтерактивний тестер API
-- **http://localhost:7777/docs** - Swagger UI Documentation / Swagger документація
+- **http://localhost:8765/** - API Information / Інформація про API
+- **http://localhost:8765/api_test.html** - Interactive API Tester / Інтерактивний тестер API
+- **http://localhost:8765/docs** - Swagger UI Documentation / Swagger документація
 
 ### GET /api/health
 Server and connection health check / Перевірка стану сервера та підключення
@@ -96,16 +96,16 @@ Get parameters (all or by ID) / Отримати параметри (всі аб
 **Examples / Приклади:**
 ```bash
 # All parameters / Всі параметри
-curl http://localhost:7777/api/dump_devm
+curl http://localhost:8765/api/dump_devm
 
 # Specific parameters / Конкретні параметри
-curl http://localhost:7777/api/dump_devm?id=0,5,10
+curl http://localhost:8765/api/dump_devm?id=0,5,10
 
 # With Ukrainian translations / З українськими перекладами
-curl http://localhost:7777/api/dump_devm?language=uk
+curl http://localhost:8765/api/dump_devm?language=uk
 
 # Specific parameters with translations / Конкретні параметри з перекладами
-curl "http://localhost:7777/api/dump_devm?id=19,237,239&language=uk"
+curl "http://localhost:8765/api/dump_devm?id=19,237,239&language=uk"
 ```
 
 **Response / Відповідь:**
@@ -150,11 +150,11 @@ curl "http://localhost:7777/api/dump_devm?id=19,237,239&language=uk"
 **Translation examples / Приклади перекладів:**
 ```bash
 # English
-curl "http://localhost:7777/api/dump_devm?id=237&language=en"
+curl "http://localhost:8765/api/dump_devm?id=237&language=en"
 # title: "Engine RPM"
 
 # Ukrainian / Українська
-curl "http://localhost:7777/api/dump_devm?id=237&language=uk"
+curl "http://localhost:8765/api/dump_devm?id=237&language=uk"
 # title: "Обороти двигуна"
 ```
 ```
@@ -168,10 +168,10 @@ Get list of all parameter IDs and names / Отримати список всіх
 **Examples / Приклади:**
 ```bash
 # Without translations / Без перекладів
-curl http://localhost:7777/api/dump_devm_param_names
+curl http://localhost:8765/api/dump_devm_param_names
 
 # With Ukrainian translations / З українськими перекладами
-curl http://localhost:7777/api/dump_devm_param_names?language=uk
+curl http://localhost:8765/api/dump_devm_param_names?language=uk
 ```
 
 **Response / Відповідь:**
@@ -271,32 +271,32 @@ DEFAULT_LANGUAGE = "en"  # or "uk" / або "uk"
 ## Ports / Порти
 
 Ports are configured in **config.py** / Порти налаштовуються в **config.py**:
-- **LISTENER_PORT** (default 3333) - TCP listener for Datakom controller / TCP listener для контролера Datakom
-- **API_PORT** (default 7777) - HTTP API server / HTTP API сервер
+- **LISTENER_PORT** (default 8760) - TCP listener for Datakom controller / TCP listener для контролера Datakom
+- **API_PORT** (default 8765) - HTTP API server / HTTP API сервер
 
 Make sure ports are open in firewall / Переконайтеся, що порти відкриті в файрволі:
 ```bash
 # Linux
-sudo ufw allow 3333/tcp
-sudo ufw allow 7777/tcp
+sudo ufw allow 8760/tcp
+sudo ufw allow 8765/tcp
 
 # Windows
-netsh advfirewall firewall add rule name="Datakom Listener" dir=in action=allow protocol=TCP localport=3333
-netsh advfirewall firewall add rule name="Datakom API" dir=in action=allow protocol=TCP localport=7777
+netsh advfirewall firewall add rule name="Datakom Listener" dir=in action=allow protocol=TCP localport=8760
+netsh advfirewall firewall add rule name="Datakom API" dir=in action=allow protocol=TCP localport=8765
 ```
 
 ## API Documentation / Документація API
 
 Interactive Swagger documentation / Інтерактивна документація Swagger:
-- **http://localhost:7777/docs** - Full API documentation with try-it-out feature / Повна документація API з можливістю тестування
+- **http://localhost:8765/docs** - Full API documentation with try-it-out feature / Повна документація API з можливістю тестування
 
 ## Troubleshooting / Усунення проблем
 
 ### API server won't start / API сервер не запускається
 ```bash
-# Check that port 7777 is free / Перевірити, що порт 7777 вільний
-netstat -an | findstr 7777  # Windows
-netstat -tulpn | grep 7777  # Linux
+# Check that port 8765 is free / Перевірити, що порт 8765 вільний
+netstat -an | findstr 8765  # Windows
+netstat -tulpn | grep 8765  # Linux
 
 # Run manually for debugging / Запустити вручну для налагодження
 python api_server.py
@@ -304,8 +304,8 @@ python api_server.py
 
 ### Listener won't connect / Listener не підключається
 ```bash
-# Check that port 3333 is open / Перевірити, що порт 3333 відкритий
-telnet localhost 3333
+# Check that port 8760 is open / Перевірити, що порт 8760 відкритий
+telnet localhost 8760
 
 # Check logs / Перевірити логи
 tail -f data/health.json
@@ -314,7 +314,7 @@ tail -f data/health.json
 ### Data not updating / Дані не оновлюються
 ```bash
 # Check listener status / Перевірити статус listener
-curl http://localhost:7777/api/health
+curl http://localhost:8765/api/health
 
 # Listener starts automatically on first request
 # Listener запускається автоматично при першому запиті

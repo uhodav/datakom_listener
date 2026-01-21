@@ -42,9 +42,9 @@ datakom_listener/
 
 ```bash
 # Install Python dependencies / Встановити Python залежності
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
-# Install PM2 / Встановити PM2
+# Install PM2 (requires Node.js) / Встановити PM2 (потрібен Node.js)
 npm install -g pm2
 
 # Create required directories / Створити необхідні директорії
@@ -73,8 +73,8 @@ pm2 logs
 Edit `config.py` / Редагувати `config.py`:
 
 ```python
-LISTENER_PORT = 3333  # TCP port for controller / TCP порт для контролера
-API_PORT = 7777       # HTTP API port / HTTP API порт
+LISTENER_PORT = 8760  # TCP port for controller / TCP порт для контролера
+API_PORT = 8765       # HTTP API port / HTTP API порт
 DEFAULT_LANGUAGE = "uk"  # Default language: uk, en / Мова за замовчуванням
 ```
 
@@ -82,8 +82,8 @@ DEFAULT_LANGUAGE = "uk"  # Default language: uk, en / Мова за замовч
 
 - **Full documentation / Повна документація:** [README_API.md](README_API.md)
 - **PM2 deployment / Розгортання PM2:** [README_PM2.md](README_PM2.md)
-- **Swagger UI:** http://localhost:7777/docs
-- **API test page / Тестова сторінка:** http://localhost:7777/api_test.html
+- **Swagger UI:** http://localhost:8765/docs
+- **API test page / Тестова сторінка:** http://localhost:8765/api_test.html
 
 ## API Endpoints
 

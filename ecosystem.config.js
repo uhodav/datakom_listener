@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'datakom-listener',
       script: 'datakom_listener.py',
-      interpreter: 'python',
+      interpreter: 'python3',
       cwd: './',
       instances: 1,
       autorestart: true,
@@ -23,7 +23,7 @@ module.exports = {
     {
       name: 'datakom-api',
       script: 'api_server.py',
-      interpreter: 'python',
+      interpreter: 'python3',
       cwd: './',
       instances: 1,
       autorestart: true,

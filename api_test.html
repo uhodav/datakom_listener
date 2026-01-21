@@ -98,10 +98,10 @@
     }
     
     function getApiBase() {
-      // API server runs on port 7777
+      // API server runs on port 8765
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
-      return `${protocol}//${hostname}:7777/api/`;
+      return `${protocol}//${hostname}:8765/api/`;
     }
     
     async function callApi(endpoint) {
