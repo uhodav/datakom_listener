@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Datakom D500 MK3 API Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    button { border-radius: 5px; border-width: 1px; cursor: pointer; padding: 8px 16px; }
+    #result { 
+      margin-top: 2em; 
+      white-space: pre-wrap; 
+      background: #f8f8f8; 
+      border: 1px solid #ccc; 
+      padding: 1em;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: auto;
+      max-height: 600px;
+    }
+    h2 { margin-bottom: 0.5em; }
+    .block-btns {
+      display: grid;
+      gap: 0.5em;
+      margin-bottom: 1em;
+    }
+    .block-btns_item {
+      border: 1px solid grey;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .block-btns_item.line{
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .btn-hint {
+      color: #666;
+      font-size: 0.9em;
+    }
+    input[type="text"] {
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      margin-right: 10px;
+    }
+    label {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Datakom D500 MK3 API Test</h1>
+  <p>Тестування REST API для контроллера Datakom D500 MK3</p>
+  
+  <div class="block-btns">
+    <div class="block-btns_item line">
+      <button onclick="callApi('health')">🏥 Health Check</button>
+      <div class="btn-hint">Перевірка стану сервера та підключення до контроллера</div>
+    </div>
+    
+    <div class="block-btns_item line">
+      <button onclick="callApi('dump_devm')">📊 Всі параметри</button>
+      <div class="btn-hint">Отримати всі параметри телеметрії</div>
+    </div>
+    
+    <div class="block-btns_item">
+      <div>
+        <label>ID параметрів: <input id="paramId" type="text" placeholder="наприклад, 0,5,10"></label>
+        <button onclick="callApi('dump_devm?id=' + encodeURIComponent(document.getElementById('paramId').value))">📈 Отримати по ID</button>
+      </div>
+      <div class="btn-hint">Отримати конкретні параметри за їх ID (через кому)</div>
+    </div>
+    
+    <div class="block-btns_item line">
+      <button onclick="callApi('dump_devm_param_names')">📝 Список параметрів</button>
+      <div class="btn-hint">Отримати список всіх ID та назв параметрів</div>
+    </div>
+    
+    <div class="block-btns_item line">
+      <button onclick="callApi('dump_devm_alarm')">⚠️ Аварії та попередження</button>
+      <div class="btn-hint">Отримати поточні аварійні сигнали (ShutDown, LoadDump, Warning)</div>
+    </div>
+  </div>
+  
+  <div id="result">Відповідь з'явиться тут...</div>
+  
+  <script>
+    // Helper to format JSON response
+    function formatResponse(text) {
+      try {
+        const json = JSON.parse(text);
+        return JSON.stringify(json, null, 2);
+      } catch (e) {
+        // If not JSON, return as is
+        return text;
+      }
+    }
+    
+    function getApiBase() {
+      // API server runs on port 7777
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      return `${protocol}//${hostname}:7777/api/`;
+    }
+    
+    async function callApi(endpoint) {
+      document.getElementById('result').textContent = 'Завантаження...';
+      try {
+        const apiBase = getApiBase();
+        const res = await fetch(apiBase + endpoint);
+        const text = await res.text();
+        document.getElementById('result').textContent = formatResponse(text);
+      } catch (e) {
+        document.getElementById('result').textContent = 'Помилка: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
+
+#### Ukraine is still suffering from Russian aggression, [please consider supporting Red Cross Ukraine with a donation](https://redcross.org.ua/en/).
+
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://stand-with-ukraine.pp.ua)
+
+# Datakom D500 MK3 API Server
+
+REST API сервер для доступа к телеметрии контроллера Datakom D500 MK3.
+
+## Архитектура
+
+Система состоит из двух компонентов:
+
+1. **datakom_listener.py** - Слушатель TCP порта (настраивается в config.py), принимает данные от контроллера
+2. **api_server.py** - REST API сервер (настраивается в config.py), предоставляет HTTP доступ к данным
+
+## Конфигурация
+
+Все настройки портов и языка в файле **config.py**:
+
+```python
+# TCP Listener configuration
+LISTENER_HOST = "0.0.0.0"
+LISTENER_PORT = 3333
+
+# API Server configuration
+API_HOST = "0.0.0.0"
+API_PORT = 7777
+
+# Language settings
+DEFAULT_LANGUAGE = "uk"  # uk, en, ru
+```
+
+## Установка
+
+### 1. Установить зависимости
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Запустить сервисы
+
+#### Рекомендуется: PM2 (автоперезапуск, логи, мониторинг)
+
+```bash
+# Установить PM2
+npm install -g pm2
+
+# Запустить оба сервиса
+pm2 start ecosystem.config.js
+
+# Сохранить и настроить автозапуск
+pm2 save
+pm2 startup
+
+# Управление
+pm2 logs                    # Просмотр логов
+pm2 status                  # Статус сервисов
+pm2 restart all             # Перезапуск
+pm2 stop all                # Остановка
+```
+
+📖 Detailed documentation / Детальна документація: [README_PM2.md](README_PM2.md)
+
+## API Endpoints
+
+### Web Interface / Веб-інтерфейс
+- **http://localhost:7777/** - API Information / Інформація про API
+- **http://localhost:7777/api_test.html** - Interactive API Tester / Інтерактивний тестер API
+- **http://localhost:7777/docs** - Swagger UI Documentation / Swagger документація
+
+### GET /api/health
+Server and connection health check / Перевірка стану сервера та підключення
+
+**Response / Відповідь:**
+```json
+{
+  "status": "ok",
+  "time": "2026-01-21T07:39:15.773Z",
+  "connect_state": "Connected",
+  "date_time_change_state": "2026-01-21T05:57:42.193Z",
+  "listener_running": true,
+  "last_error": null
+}
+```
+
+### GET /api/dump_devm?id=ID1,ID2,...&language=LANG
+Get parameters (all or by ID) / Отримати параметри (всі або по ID)
+
+**Parameters / Параметри:**
+- `id` (optional) - Comma-separated ID list / Список ID через кому
+- `language` (optional) - Language code: `uk`, `en`, `ru` (adds translations to `title` field) / Код мови: `uk`, `en`, `ru` (додає переклади в поле `title`)
+
+**Examples / Приклади:**
+```bash
+# All parameters / Всі параметри
+curl http://localhost:7777/api/dump_devm
+
+# Specific parameters / Конкретні параметри
+curl http://localhost:7777/api/dump_devm?id=0,5,10
+
+# With Ukrainian translations / З українськими перекладами
+curl http://localhost:7777/api/dump_devm?language=uk
+
+# Specific parameters with translations / Конкретні параметри з перекладами
+curl "http://localhost:7777/api/dump_devm?id=19,237,239&language=uk"
+```
+
+**Response / Відповідь:**
+```json
+{
+  "success": true,
+  "result": [
+    {
+      "id": 19,
+      "label": "Information ModBus Port",
+      "title": "ModBus порт",
+      "value": 502,
+      "unit": ""
+    },
+    {
+      "id": 237,
+      "label": "Engine RPM",
+      "title": "Обороти двигуна",
+      "value": 1497,
+      "unit": "RPM"
+    },
+    {
+      "id": 239,
+      "label": "Engine Battery Voltage1",
+      "title": "Напруга акумулятора 1",
+      "value": 14.57,
+      "unit": "Vdc"
+    }
+  ],
+  "cached": true,
+  "timestamp": "2026-01-21T10:30:00.000Z"
+}
+```
+
+**Note / Примітка:** The `title` field contains the translated parameter name if `language` parameter is specified. Without language, `title` will be empty string. / Поле `title` містить перекладену назву параметра, якщо вказано параметр `language`. Без мови `title` буде порожнім рядком.
+
+**Supported languages / Підтримувані мови:**
+- `uk` - Українська (default / за замовчуванням)
+- `en` - English
+- `ru` - Москальска
+
+**Translation examples / Приклади перекладів:**
+```bash
+# English
+curl "http://localhost:7777/api/dump_devm?id=237&language=en"
+# title: "Engine RPM"
+
+# Ukrainian / Українська
+curl "http://localhost:7777/api/dump_devm?id=237&language=uk"
+# title: "Обороти двигуна"
+```
+```
+
+### GET /api/dump_devm_param_names?language=LANG
+Get list of all parameter IDs and names / Отримати список всіх ID та назв параметрів
+
+**Parameters / Параметри:**
+- `language` (optional) - Language code: `uk`, `en`, `ru` (adds translations to `title` field) / Код мови: `uk`, `en`, `ru` (додає переклади в поле `title`)
+
+**Examples / Приклади:**
+```bash
+# Without translations / Без перекладів
+curl http://localhost:7777/api/dump_devm_param_names
+
+# With Ukrainian translations / З українськими перекладами
+curl http://localhost:7777/api/dump_devm_param_names?language=uk
+```
+
+**Response / Відповідь:**
+```json
+{
+  "success": true,
+  "params": [
+    {
+      "id": 19,
+      "label": "Information ModBus Port",
+      "title": "ModBus порт"
+    },
+    {
+      "id": 21,
+      "label": "Information UniqueID",
+      "title": "Унікальний ID"
+    },
+    {
+      "id": 37,
+      "label": "Information LAN-IP",
+      "title": "LAN IP-адреса"
+    }
+  ],
+  "cached": true
+}
+```
+
+**Note / Примітка:** With `language` parameter, the `title` field contains translated name. Without language, `title` will be empty string. / З параметром `language` поле `title` містить перекладену назву. Без мови `title` буде порожнім рядком.
+```
+
+### GET /api/dump_devm_alarm
+Get current alarm signals / Отримати поточні аварійні сигнали
+
+**Response / Відповідь:**
+```json
+{
+  "success": true,
+  "alarm": {
+    "ShutDown": [],
+    "LoadDump": [],
+    "Warning": [
+      {
+        "slot": 0,
+        "name": "Fuel Filling!",
+        "index": 252
+      }
+    ]
+  },
+  "cached": true
+}
+```
+
+## Monitoring / Моніторинг
+
+### PM2 Logs / Логи PM2
+```bash
+# All services / Всі сервіси
+pm2 logs
+
+# Specific service / Конкретний сервіс
+pm2 logs datakom-api
+pm2 logs datakom-listener
+
+# Real-time monitoring / Моніторинг в реальному часі
+pm2 monit
+```
+
+### Log Files / Файли логів
+```
+logs/api-out.log       # API stdout
+logs/api-error.log     # API stderr
+logs/listener-out.log  # Listener stdout
+logs/listener-error.log # Listener stderr
+```
+
+## Language Settings / Налаштування мови
+
+Default language is Ukrainian (configured in config.py). / За замовчуванням використовується українська мова (налаштовується в config.py).
+Change via environment variable / Змінити через змінну оточення:
+
+```bash
+# Windows
+$env:DATAKOM_LANG="en"  # English
+$env:DATAKOM_LANG="uk"  # Ukrainian (default / за замовчуванням)
+$env:DATAKOM_LANG="ru"  # Moskalskaya
+
+
+# Linux
+export DATAKOM_LANG=en
+```
+
+Or change DEFAULT_LANGUAGE in config.py / Або змінити DEFAULT_LANGUAGE в config.py:
+```python
+DEFAULT_LANGUAGE = "en"  # or "uk" / або "uk"
+```
+
+## Ports / Порти
+
+Ports are configured in **config.py** / Порти налаштовуються в **config.py**:
+- **LISTENER_PORT** (default 3333) - TCP listener for Datakom controller / TCP listener для контролера Datakom
+- **API_PORT** (default 7777) - HTTP API server / HTTP API сервер
+
+Make sure ports are open in firewall / Переконайтеся, що порти відкриті в файрволі:
+```bash
+# Linux
+sudo ufw allow 3333/tcp
+sudo ufw allow 7777/tcp
+
+# Windows
+netsh advfirewall firewall add rule name="Datakom Listener" dir=in action=allow protocol=TCP localport=3333
+netsh advfirewall firewall add rule name="Datakom API" dir=in action=allow protocol=TCP localport=7777
+```
+
+## API Documentation / Документація API
+
+Interactive Swagger documentation / Інтерактивна документація Swagger:
+- **http://localhost:7777/docs** - Full API documentation with try-it-out feature / Повна документація API з можливістю тестування
+
+## Troubleshooting / Усунення проблем
+
+### API server won't start / API сервер не запускається
+```bash
+# Check that port 7777 is free / Перевірити, що порт 7777 вільний
+netstat -an | findstr 7777  # Windows
+netstat -tulpn | grep 7777  # Linux
+
+# Run manually for debugging / Запустити вручну для налагодження
+python api_server.py
+```
+
+### Listener won't connect / Listener не підключається
+```bash
+# Check that port 3333 is open / Перевірити, що порт 3333 відкритий
+telnet localhost 3333
+
+# Check logs / Перевірити логи
+tail -f data/health.json
+```
+
+### Data not updating / Дані не оновлюються
+```bash
+# Check listener status / Перевірити статус listener
+curl http://localhost:7777/api/health
+
+# Listener starts automatically on first request
+# Listener запускається автоматично при першому запиті
+```
