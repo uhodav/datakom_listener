@@ -42,13 +42,18 @@ datakom_listener/
 
 ```bash
 # Install Python dependencies / Встановити Python залежності
-pip3 install -r requirements.txt
+# If pip3 is not installed, use: / Якщо pip3 не встановлено, використайте:
+python3 -m pip install -r requirements.txt
+
+# Or install pip3 first (Ubuntu/Debian): / Або спочатку встановіть pip3 (Ubuntu/Debian):
+# sudo apt update && sudo apt install python3-pip
+# pip3 install -r requirements.txt
 
 # Install PM2 (requires Node.js) / Встановити PM2 (потрібен Node.js)
 npm install -g pm2
 
 # Create required directories / Створити необхідні директорії
-mkdir data packets packets\telemetry packets\event logs
+mkdir -p data packets/telemetry packets/event logs
 ```
 
 ### Running / Запуск
