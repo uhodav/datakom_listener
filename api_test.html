@@ -98,10 +98,15 @@
     }
     
     function getApiBase() {
-      // API server runs on port 8765
+      // API через nginx proxy
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;
-      return `${protocol}//${hostname}:8765/api/`;
+      // Проверяем, запущено ли локально (localhost/127.0.0.1)
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return `${protocol}//${hostname}:8765/api/`;
+      }
+      // Для production используем nginx proxy
+      return `${protocol}//${hostname}/datakom/api/`;
     }
     
     async function callApi(endpoint) {
