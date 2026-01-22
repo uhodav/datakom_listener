@@ -67,7 +67,7 @@ pm2 stop all                # Остановка
 ## API Endpoints
 
 ### Web Interface / Веб-інтерфейс
-- **https://your-domain.com/datakom/api/health** - API Health Check / Перевірка стану API
+- **https://your-domain.com/api/health** - API Health Check / Перевірка стану API
 - **https://your-domain.com/api_test.html** - Interactive API Tester / Інтерактивний тестер API
 - **http://localhost:8765/docs** - Swagger UI Documentation (local only) / Swagger документація (тільки локально)
 
@@ -96,16 +96,16 @@ Get parameters (all or by ID) / Отримати параметри (всі аб
 **Examples / Приклади:**
 ```bash
 # Production / Продакшн
-curl https://your-domain.com/datakom/api/dump_devm
+curl https://your-domain.com/api/dump_devm
 
 # Specific parameters / Конкретні параметри
-curl https://your-domain.com/datakom/api/dump_devm?id=0,5,10
+curl https://your-domain.com/api/dump_devm?id=0,5,10
 
 # With Ukrainian translations / З українськими перекладами
-curl https://your-domain.com/datakom/api/dump_devm?language=uk
+curl https://your-domain.com/api/dump_devm?language=uk
 
 # Specific parameters with translations / Конкретні параметри з перекладами
-curl "https://your-domain.com/datakom/api/dump_devm?id=19,237,239&language=uk"
+curl "https://your-domain.com/api/dump_devm?id=19,237,239&language=uk"
 
 # Local access / Локальний доступ
 curl http://localhost:8765/api/dump_devm?language=uk
@@ -153,11 +153,11 @@ curl http://localhost:8765/api/dump_devm?language=uk
 **Translation examples / Приклади перекладів:**
 ```bash
 # English
-curl "https://your-domain.com/datakom/api/dump_devm?id=237&language=en"
+curl "https://your-domain.com/api/dump_devm?id=237&language=en"
 # title: "Engine RPM"
 
 # Ukrainian / Українська
-curl "https://your-domain.com/datakom/api/dump_devm?id=237&language=uk"
+curl "https://your-domain.com/api/dump_devm?id=237&language=uk"
 # title: "Обороти двигуна"
 ```
 ```
@@ -171,10 +171,10 @@ Get list of all parameter IDs and names / Отримати список всіх
 **Examples / Приклади:**
 ```bash
 # Production / Продакшн
-curl https://your-domain.com/datakom/api/dump_devm_param_names
+curl https://your-domain.com/api/dump_devm_param_names
 
 # With Ukrainian translations / З українськими перекладами
-curl https://your-domain.com/datakom/api/dump_devm_param_names?language=uk
+curl https://your-domain.com/api/dump_devm_param_names?language=uk
 
 # Local access / Локальний доступ
 curl http://localhost:8765/api/dump_devm_param_names?language=uk
@@ -340,7 +340,7 @@ pm2 restart datakom-listener
 ### Data not updating / Дані не оновлюються
 ```bash
 # Check listener status / Перевірити статус listener
-curl https://your-domain.com/datakom/api/health
+curl https://your-domain.com/api/health
 
 # Check PM2 logs / Перевірити логи PM2
 pm2 logs datakom-listener --lines 50

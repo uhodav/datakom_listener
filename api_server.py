@@ -113,7 +113,7 @@ def is_listener_running() -> bool:
         
         # Try to connect to listener port
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.05)  # 50ms timeout (fast check)
+        sock.settimeout(0.5)  # 500ms timeout (increased from 50ms)
         result = sock.connect_ex(('127.0.0.1', LISTENER_PORT))
         sock.close()
         
@@ -121,7 +121,8 @@ def is_listener_running() -> bool:
         is_running = (result == 0)
         listener_status_cache.update({"running": is_running, "last_check": now})
         return is_running
-    except Exception:
+    except Exception as e:
+        print(f"Error checking listener port: {e}")
         listener_status_cache.update({"running": False, "last_check": now})
         return False
 
