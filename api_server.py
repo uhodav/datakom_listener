@@ -243,8 +243,9 @@ async def get_health():
     
     if not listener_running:
         health["connect_state"] = "Stopped"
-    elif health.get("connect_state") in ("Unknown", None, "Disconnected") and listener_running:
-        # If listener is running but state is unknown/disconnected, it's listening for connections
+    elif health.get("connect_state") in ("Unknown", None, "Disconnected", "Stopped") and listener_running:
+        # If listener is running but state indicates it's not active, update to "Listening"
+        # This handles cases where health.json has stale "Stopped" status from previous run
         health["connect_state"] = "Listening"
     
     return health
