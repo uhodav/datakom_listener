@@ -67,9 +67,9 @@ pm2 stop all                # Остановка
 ## API Endpoints
 
 ### Web Interface / Веб-інтерфейс
-- **http://localhost:8765/** - API Information / Інформація про API
-- **http://localhost:8765/api_test.html** - Interactive API Tester / Інтерактивний тестер API
-- **http://localhost:8765/docs** - Swagger UI Documentation / Swagger документація
+- **https://your-domain.com/datakom/api/health** - API Health Check / Перевірка стану API
+- **https://your-domain.com/api_test.html** - Interactive API Tester / Інтерактивний тестер API
+- **http://localhost:8765/docs** - Swagger UI Documentation (local only) / Swagger документація (тільки локально)
 
 ### GET /api/health
 Server and connection health check / Перевірка стану сервера та підключення
@@ -95,17 +95,20 @@ Get parameters (all or by ID) / Отримати параметри (всі аб
 
 **Examples / Приклади:**
 ```bash
-# All parameters / Всі параметри
-curl http://localhost:8765/api/dump_devm
+# Production / Продакшн
+curl https://your-domain.com/datakom/api/dump_devm
 
 # Specific parameters / Конкретні параметри
-curl http://localhost:8765/api/dump_devm?id=0,5,10
+curl https://your-domain.com/datakom/api/dump_devm?id=0,5,10
 
 # With Ukrainian translations / З українськими перекладами
-curl http://localhost:8765/api/dump_devm?language=uk
+curl https://your-domain.com/datakom/api/dump_devm?language=uk
 
 # Specific parameters with translations / Конкретні параметри з перекладами
-curl "http://localhost:8765/api/dump_devm?id=19,237,239&language=uk"
+curl "https://your-domain.com/datakom/api/dump_devm?id=19,237,239&language=uk"
+
+# Local access / Локальний доступ
+curl http://localhost:8765/api/dump_devm?language=uk
 ```
 
 **Response / Відповідь:**
@@ -150,11 +153,11 @@ curl "http://localhost:8765/api/dump_devm?id=19,237,239&language=uk"
 **Translation examples / Приклади перекладів:**
 ```bash
 # English
-curl "http://localhost:8765/api/dump_devm?id=237&language=en"
+curl "https://your-domain.com/datakom/api/dump_devm?id=237&language=en"
 # title: "Engine RPM"
 
 # Ukrainian / Українська
-curl "http://localhost:8765/api/dump_devm?id=237&language=uk"
+curl "https://your-domain.com/datakom/api/dump_devm?id=237&language=uk"
 # title: "Обороти двигуна"
 ```
 ```
@@ -167,10 +170,13 @@ Get list of all parameter IDs and names / Отримати список всіх
 
 **Examples / Приклади:**
 ```bash
-# Without translations / Без перекладів
-curl http://localhost:8765/api/dump_devm_param_names
+# Production / Продакшн
+curl https://your-domain.com/datakom/api/dump_devm_param_names
 
 # With Ukrainian translations / З українськими перекладами
+curl https://your-domain.com/datakom/api/dump_devm_param_names?language=uk
+
+# Local access / Локальний доступ
 curl http://localhost:8765/api/dump_devm_param_names?language=uk
 ```
 
@@ -302,6 +308,23 @@ netstat -tulpn | grep 8765  # Linux
 python api_server.py
 ```
 
+### Port 8760 not accessible from outside / Порт 8760 недоступний ззовні
+```bash
+# Check iptables rules / Перевірте правила iptables
+sudo iptables -L INPUT -n -v | grep 8760
+
+# If rule missing, add it / Якщо правило відсутнє, додайте його
+sudo iptables -I INPUT -p tcp --dport 8760 -j ACCEPT
+
+# Save rules / Збережіть правила
+sudo netfilter-persistent save
+# або
+sudo iptables-save > /etc/iptables/rules.v4
+
+# Test from external computer / Перевірте з зовнішнього комп'ютера
+telnet YOUR_SERVER_IP 8760
+```
+
 ### Listener won't connect / Listener не підключається
 ```bash
 # Check that port 8760 is open / Перевірити, що порт 8760 відкритий
@@ -309,13 +332,31 @@ telnet localhost 8760
 
 # Check logs / Перевірити логи
 tail -f data/health.json
+
+# Restart listener / Перезапустити listener
+pm2 restart datakom-listener
 ```
 
 ### Data not updating / Дані не оновлюються
 ```bash
 # Check listener status / Перевірити статус listener
-curl http://localhost:8765/api/health
+curl https://your-domain.com/datakom/api/health
 
-# Listener starts automatically on first request
-# Listener запускається автоматично при першому запиті
+# Check PM2 logs / Перевірити логи PM2
+pm2 logs datakom-listener --lines 50
+
+# Look for connection from controller IP (not 127.0.0.1)
+# Шукайте підключення від IP контролера (не 127.0.0.1)
+grep "Connection from" logs/listener-out-0.log | grep -v 127.0.0.1
 ```
+
+### Controller not connecting / Контролер не підключається
+**Symptoms / Симптоми:** Only 127.0.0.1 connections in logs / Тільки 127.0.0.1 підключення в логах
+
+**Solution / Рішення:**
+1. Check firewall rules / Перевірте правила firewall
+2. Verify controller settings: IP=YOUR_SERVER_IP, Port=8760
+3. Ensure port 8760 is open in hosting panel / Переконайтеся, що порт 8760 відкритий в панелі хостингу
+4. Test connectivity: `telnet YOUR_SERVER_IP 8760` from controller's network
+
+**Note:** API returns cached data if controller is not connected / Примітка: API повертає кешовані дані, якщо контролер не підключений
