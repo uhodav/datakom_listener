@@ -105,19 +105,30 @@ def is_listener_running() -> bool:
         listener_status_cache.update({"running": True, "last_check": now})
         return True
     
-    # For PM2-managed processes, check if listening on port
-    # This is much faster than iterating all processes
+    # For PM2-managed processes, check health.json timestamp
+    # If file was updated recently (within 60 seconds), listener is alive
+    try:
+        if HEALTH_JSON.exists():
+            file_mtime = HEALTH_JSON.stat().st_mtime
+            age_seconds = now - file_mtime
+            
+            # If health.json updated within last 60 seconds, listener is running
+            is_running = (age_seconds < 60)
+            listener_status_cache.update({"running": is_running, "last_check": now})
+            return is_running
+    except Exception as e:
+        print(f"Error checking listener health file: {e}")
+    
+    # Fallback: try to connect to listener port
     try:
         import socket
         from config import LISTENER_PORT
         
-        # Try to connect to listener port
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)  # 500ms timeout (increased from 50ms)
+        sock.settimeout(0.5)
         result = sock.connect_ex(('127.0.0.1', LISTENER_PORT))
         sock.close()
         
-        # Port is open = listener is running
         is_running = (result == 0)
         listener_status_cache.update({"running": is_running, "last_check": now})
         return is_running
