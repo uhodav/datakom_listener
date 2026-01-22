@@ -59,7 +59,7 @@ def decode_telemetry(data: bytes) -> dict:
     # Runtime counter (offset 99-100) - minutes of current session
     runtime_raw = int.from_bytes(data[99:101], "little")
     result["runtime_counter_minutes"] = make_measurement(runtime_raw, "minutes")
-    result["runtime_hours"] = make_measurement(round(runtime_raw / 60, 2), "hours")
+    result["runtime_hours"] = make_measurement(round(runtime_raw / 60, 2), "hour")
     
     # Genset voltages (offset 181, 185, 189) - scaled by 10
     result["genset_L1_V"] = make_measurement(round(int.from_bytes(data[181:183], "little") / 10, 1), "V")
@@ -92,10 +92,10 @@ def decode_telemetry(data: bytes) -> dict:
     result["battery_voltage_Vdc"] = make_measurement(round(int.from_bytes(data[239:241], "little") / 100, 2), "Vdc")
     
     # Oil pressure (offset 243) - bar, scaled by 10
-    result["oil_pressure_bar"] = make_measurement(round(int.from_bytes(data[243:245], "little") / 10, 1), "bar")
+    result["oil_pressure_bar"] = make_measurement(round(int.from_bytes(data[243:245], "little") / 10, 1), "Bar")
     
     # Coolant temperature (offset 245) - Celsius, scaled by 10
-    result["coolant_temp_C"] = make_measurement(round(int.from_bytes(data[245:247], "little") / 10, 1), "°C")
+    result["coolant_temp_C"] = make_measurement(round(int.from_bytes(data[245:247], "little") / 10, 1), "'C")
     
     # Fuel level (offset 247) - percent, scaled by 10
     result["fuel_level_percent"] = make_measurement(round(int.from_bytes(data[247:249], "little") / 10, 1), "%")
@@ -166,21 +166,21 @@ def decode_telemetry(data: bytes) -> dict:
     
     # Genset statistics (offset 503-549)
     if len(data) > 504:
-        result["genset_starts_count"] = make_measurement(int.from_bytes(data[503:505], "little"), "starts")
+        result["genset_starts_count"] = make_measurement(int.from_bytes(data[503:505], "little"), "")
     
     if len(data) > 510:
         result["reactive_energy_inductive"] = make_measurement(round(int.from_bytes(data[507:511], "little") / 10, 1), "kVArh")
     
     # Engine run hours total (offset 511) - hours, scaled by 100
     if len(data) > 512:
-        result["engine_run_hours_total"] = make_measurement(round(int.from_bytes(data[511:513], "little") / 100, 2), "hours")
+        result["engine_run_hours_total"] = make_measurement(round(int.from_bytes(data[511:513], "little") / 100, 2), "hour")
     
     # Service intervals (offset 515-522)
     if len(data) > 516:
-        result["hours_to_service_1"] = make_measurement(round(int.from_bytes(data[515:517], "little") / 100, 2), "hours")
+        result["hours_to_service_1"] = make_measurement(round(int.from_bytes(data[515:517], "little") / 100, 2), "hour")
     
     if len(data) > 522:
-        result["days_to_service_1"] = make_measurement(round(int.from_bytes(data[519:523], "little") / 100, 2), "days")
+        result["days_to_service_1"] = make_measurement(round(int.from_bytes(data[519:523], "little") / 100, 2), "day")
     
     # Total energy produced (offset 539) - kWh, scaled by 10
     if len(data) > 542:
@@ -188,31 +188,11 @@ def decode_telemetry(data: bytes) -> dict:
     
     # Genset cranks count (offset 543)
     if len(data) > 544:
-        result["genset_cranks_count"] = make_measurement(int.from_bytes(data[543:545], "little"), "cranks")
+        result["genset_cranks_count"] = make_measurement(int.from_bytes(data[543:545], "little"), "")
     
     # Reactive energy capacitive (offset 547)
     if len(data) > 548:
         result["reactive_energy_capacitive"] = make_measurement(round(int.from_bytes(data[547:549], "little") / 10, 1), "kVArh")
-    
-    # Engine Power Rate (offset 553) - percent
-    if len(data) > 554:
-        result["engine_power_rate_percent"] = make_measurement(int.from_bytes(data[553:555], "little"), "%")
-    
-    # Battery Voltage 2 (offset 555) - Vdc, scaled by 100
-    if len(data) > 556:
-        result["battery_voltage_2_Vdc"] = make_measurement(round(int.from_bytes(data[555:557], "little") / 100, 2), "Vdc")
-    
-    # Fuel Status in liters (offset 585) - liters
-    if len(data) > 586:
-        result["fuel_status_liters"] = make_measurement(int.from_bytes(data[585:587], "little"), "liters")
-    
-    # Fuel percentage (offset 587) - percent
-    if len(data) > 588:
-        result["fuel_percent"] = make_measurement(int.from_bytes(data[587:589], "little"), "%")
-    
-    # DC Charge State (offset 624)
-    if len(data) > 625:
-        result["dc_charge_state"] = make_measurement(int.from_bytes(data[624:626], "little"))
     
     return result
 
