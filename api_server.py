@@ -134,8 +134,10 @@ def start_listener() -> bool:
         return True
     
     try:
+        # Use python3 on Linux, python on Windows
+        python_cmd = "python" if os.name == 'nt' else "python3"
         listener_process = subprocess.Popen(
-            ["python", LISTENER_SCRIPT],
+            [python_cmd, LISTENER_SCRIPT],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
