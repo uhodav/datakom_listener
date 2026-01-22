@@ -18,7 +18,16 @@ module.exports = {
       time: true,
       restart_delay: 5000,
       max_restarts: 10,
-      min_uptime: '10s'
+      min_uptime: '10s',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+      // Log rotation
+      max_size: '5M',
+      retain: 10,
+      compress: true,
+      dateFormat: 'YYYY-MM-DD_HH-mm-ss',
+      rotateInterval: '0 0 * * *',
+      rotateModule: true
     },
     {
       name: 'datakom-api',
@@ -38,7 +47,16 @@ module.exports = {
       time: true,
       restart_delay: 5000,
       max_restarts: 10,
-      min_uptime: '10s'
+      min_uptime: '10s',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss',
+      merge_logs: true,
+      // Log rotation
+      max_size: '5M',
+      retain: 10,
+      compress: true,
+      dateFormat: 'YYYY-MM-DD_HH-mm-ss',
+      rotateInterval: '0 0 * * *',
+      rotateModule: true
     }
   ]
 };
