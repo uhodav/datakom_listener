@@ -237,6 +237,49 @@ pm2 restart all
 pm2 reload all
 ```
 
+## Log Rotation / Ротація логів
+
+PM2 can automatically rotate log files to prevent them from growing too large.
+PM2 може автоматично ротувати файли логів, щоб вони не росли занадто великими.
+
+### Install pm2-logrotate / Встановити pm2-logrotate
+
+```bash
+# Install log rotation module / Встановити модуль ротації логів
+pm2 install pm2-logrotate
+
+# Configure rotation settings / Налаштувати параметри ротації
+pm2 set pm2-logrotate:max_size 5M        # Max 5MB per log file / Максимум 5МБ на файл
+pm2 set pm2-logrotate:retain 10          # Keep 10 archived logs / Зберігати 10 архівів
+pm2 set pm2-logrotate:compress true      # Compress old logs / Стискати старі логи
+pm2 set pm2-logrotate:dateFormat YYYY-MM-DD_HH-mm-ss
+pm2 set pm2-logrotate:rotateModule true  # Also rotate pm2 module logs
+
+# View current settings / Переглянути поточні налаштування
+pm2 conf pm2-logrotate
+```
+
+### Manual log cleanup / Ручне очищення логів
+
+```bash
+# Clear all logs / Очистити всі логи
+pm2 flush
+
+# Or delete log files and restart / Або видалити файли логів та перезапустити
+rm logs/*.log
+pm2 restart all
+```
+
+### Check log file sizes / Перевірити розміри файлів логів
+
+```bash
+# Linux/macOS
+du -h logs/*.log | sort -h
+
+# Windows PowerShell
+Get-ChildItem logs\*.log | Select-Object Name, @{Name='Size(MB)';Expression={[math]::Round($_.Length/1MB, 2)}} | Sort-Object 'Size(MB)' -Descending
+```
+
 ## Troubleshooting / Усунення проблем
 
 ### Processes won't start / Процеси не запускаються
