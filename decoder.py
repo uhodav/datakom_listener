@@ -85,11 +85,43 @@ def decode_telemetry(data: bytes) -> dict:
     # Frequency (offset 231) - Hz, scaled by 100
     result["genset_freq_Hz"] = make_measurement(round(int.from_bytes(data[231:233], "little") / 100, 2), "Hz")
     
+    # Mains voltages (offset 125, 129, 133) - scaled by 10
+    if len(data) > 135:
+        result["mains_L1_V"] = make_measurement(round(int.from_bytes(data[125:127], "little") / 10, 1), "V")
+        result["mains_L2_V"] = make_measurement(round(int.from_bytes(data[129:131], "little") / 10, 1), "V")
+        result["mains_L3_V"] = make_measurement(round(int.from_bytes(data[133:135], "little") / 10, 1), "V")
+    
+    # Mains currents (offset 137, 141, 145) - scaled by 10
+    if len(data) > 147:
+        result["mains_I1_A"] = make_measurement(round(int.from_bytes(data[137:139], "little") / 10, 1), "A")
+        result["mains_I2_A"] = make_measurement(round(int.from_bytes(data[141:143], "little") / 10, 1), "A")
+        result["mains_I3_A"] = make_measurement(round(int.from_bytes(data[145:147], "little") / 10, 1), "A")
+    
+    # Mains line-to-line voltages (offset 149, 153, 157) - scaled by 10
+    if len(data) > 159:
+        result["mains_L1_L2_V"] = make_measurement(round(int.from_bytes(data[149:151], "little") / 10, 1), "V")
+        result["mains_L2_L3_V"] = make_measurement(round(int.from_bytes(data[153:155], "little") / 10, 1), "V")
+        result["mains_L3_L1_V"] = make_measurement(round(int.from_bytes(data[157:159], "little") / 10, 1), "V")
+    
+    # Mains power (offset 161, 165, 169) - scaled by 10
+    if len(data) > 171:
+        result["mains_P_total_kW"] = make_measurement(round(int.from_bytes(data[161:163], "little") / 10, 1), "kW")
+        result["mains_Q_total_kVAr"] = make_measurement(round(int.from_bytes(data[165:167], "little") / 10, 1), "kVAr")
+        result["mains_S_total_kVA"] = make_measurement(round(int.from_bytes(data[169:171], "little") / 10, 1), "kVA")
+    
+    # Mains frequency (offset 175) - Hz, scaled by 100
+    if len(data) > 177:
+        result["mains_freq_Hz"] = make_measurement(round(int.from_bytes(data[175:177], "little") / 100, 2), "Hz")
+    
     # Engine RPM (offset 237)
     result["engine_rpm"] = make_measurement(int.from_bytes(data[237:239], "little"), "RPM")
     
     # Battery voltage (offset 239) - V, scaled by 100
     result["battery_voltage_Vdc"] = make_measurement(round(int.from_bytes(data[239:241], "little") / 100, 2), "Vdc")
+    
+    # Charge voltage (offset 241) - V, scaled by 100
+    if len(data) > 243:
+        result["charge_voltage"] = make_measurement(round(int.from_bytes(data[241:243], "little") / 100, 2), "Vdc")
     
     # Oil pressure (offset 243) - bar, scaled by 10
     result["oil_pressure_bar"] = make_measurement(round(int.from_bytes(data[243:245], "little") / 10, 1), "Bar")
@@ -99,6 +131,14 @@ def decode_telemetry(data: bytes) -> dict:
     
     # Fuel level (offset 247) - percent, scaled by 10
     result["fuel_level_percent"] = make_measurement(round(int.from_bytes(data[247:249], "little") / 10, 1), "%")
+    
+    # Oil temperature (offset 249) - Celsius, scaled by 10
+    if len(data) > 251:
+        result["oil_temp"] = make_measurement(round(int.from_bytes(data[249:251], "little") / 10, 1), "'C")
+    
+    # Canopy temperature (offset 251) - Celsius, scaled by 10
+    if len(data) > 253:
+        result["canopy_temp"] = make_measurement(round(int.from_bytes(data[251:253], "little") / 10, 1), "'C")
     
     # Alerts structure (offset 258-500)
     # SENDER slots: 8 slots × 19 bytes each (258-407)
@@ -175,12 +215,24 @@ def decode_telemetry(data: bytes) -> dict:
     if len(data) > 512:
         result["engine_run_hours_total"] = make_measurement(round(int.from_bytes(data[511:513], "little") / 100, 2), "hour")
     
-    # Service intervals (offset 515-522)
+    # Service intervals (offset 515-536)
     if len(data) > 516:
         result["hours_to_service_1"] = make_measurement(round(int.from_bytes(data[515:517], "little") / 100, 2), "hour")
     
     if len(data) > 522:
         result["days_to_service_1"] = make_measurement(round(int.from_bytes(data[519:523], "little") / 100, 2), "day")
+    
+    if len(data) > 524:
+        result["hours_to_service_2"] = make_measurement(round(int.from_bytes(data[523:525], "little") / 100, 2), "hour")
+    
+    if len(data) > 528:
+        result["days_to_service_2"] = make_measurement(round(int.from_bytes(data[527:531], "little") / 100, 2), "day")
+    
+    if len(data) > 532:
+        result["hours_to_service_3"] = make_measurement(round(int.from_bytes(data[531:533], "little") / 100, 2), "hour")
+    
+    if len(data) > 536:
+        result["days_to_service_3"] = make_measurement(round(int.from_bytes(data[535:539], "little") / 100, 2), "day")
     
     # Total energy produced (offset 539) - kWh, scaled by 10
     if len(data) > 542:
@@ -193,6 +245,84 @@ def decode_telemetry(data: bytes) -> dict:
     # Reactive energy capacitive (offset 547)
     if len(data) > 548:
         result["reactive_energy_capacitive"] = make_measurement(round(int.from_bytes(data[547:549], "little") / 10, 1), "kVArh")
+    
+    # Engine power rate (offset 553) - percent
+    if len(data) > 554:
+        result["engine_power_rate_percent"] = make_measurement(int.from_bytes(data[553:555], "little"), "%")
+    
+    # Battery voltage 2 (offset 555) - V, scaled by 100
+    if len(data) > 557:
+        result["battery_voltage_2_Vdc"] = make_measurement(round(int.from_bytes(data[555:557], "little") / 100, 2), "Vdc")
+    
+    # Mains energy counters (offset 561-576)
+    if len(data) > 565:
+        result["mains_total_kWh"] = make_measurement(round(int.from_bytes(data[561:565], "little") / 10, 1), "kWh")
+    
+    if len(data) > 569:
+        result["mains_total_kVArh_ind"] = make_measurement(round(int.from_bytes(data[565:569], "little") / 10, 1), "kVArh")
+    
+    if len(data) > 573:
+        result["mains_total_kVArh_cap"] = make_measurement(round(int.from_bytes(data[569:573], "little") / 10, 1), "kVArh")
+    
+    if len(data) > 577:
+        result["mains_total_export_kWh"] = make_measurement(round(int.from_bytes(data[573:577], "little") / 10, 1), "kWh")
+    
+    # Fuel consumption FlowMeter (offset 577) - liters, scaled by 10
+    if len(data) > 581:
+        result["fuel_consumption_flowm"] = make_measurement(round(int.from_bytes(data[577:581], "little") / 10, 1), "lt.")
+    
+    # Fuel status (offset 585) - liters
+    if len(data) > 589:
+        result["fuel_status_liters"] = make_measurement(int.from_bytes(data[585:589], "little"), "lt.")
+    
+    # Fuel percent (offset 587) - percent (overlaps with fuel_status, but different interpretation)
+    if len(data) > 589:
+        result["fuel_percent"] = make_measurement(int.from_bytes(data[587:589], "little"), "%")
+    
+    # GPS satellites (offset 589)
+    if len(data) > 590:
+        result["satellites"] = make_measurement(int.from_bytes(data[589:590], "little"), "")
+    
+    # Fuel consumption ECU (offset 598) - liters, scaled by 10
+    if len(data) > 602:
+        result["fuel_consumption_ecu"] = make_measurement(round(int.from_bytes(data[598:602], "little") / 10, 1), "lt.")
+    
+    # Battery group parameters (offset 602-610)
+    if len(data) > 604:
+        result["min_battery_voltage"] = make_measurement(round(int.from_bytes(data[602:604], "little") / 100, 2), "Vdc")
+    
+    if len(data) > 606:
+        result["battery_group_voltage"] = make_measurement(round(int.from_bytes(data[604:606], "little") / 100, 2), "Vdc")
+    
+    if len(data) > 608:
+        result["battery_group_current"] = make_measurement(round(int.from_bytes(data[606:608], "little") / 10, 1), "A")
+    
+    if len(data) > 612:
+        result["discharge_current_counter"] = make_measurement(int.from_bytes(data[608:612], "little"), "")
+    
+    # Fuel rate FlowMeter (offset 612) - l/h, scaled by 10
+    if len(data) > 614:
+        result["fuel_rate_flowm"] = make_measurement(round(int.from_bytes(data[612:614], "little") / 10, 1), "lt./h")
+    
+    # Fuel rate ECU (offset 614) - l/h, scaled by 10
+    if len(data) > 616:
+        result["fuel_rate_ecu"] = make_measurement(round(int.from_bytes(data[614:616], "little") / 10, 1), "lt./h")
+    
+    # DC alternator and battery (offset 616-625)
+    if len(data) > 618:
+        result["alternator_voltage"] = make_measurement(round(int.from_bytes(data[616:618], "little") / 100, 2), "Vdc")
+    
+    if len(data) > 620:
+        result["load_battery_voltage"] = make_measurement(round(int.from_bytes(data[618:620], "little") / 100, 2), "Vdc")
+    
+    if len(data) > 622:
+        result["dc_actual_current"] = make_measurement(round(int.from_bytes(data[620:622], "little") / 10, 1), "A")
+    
+    if len(data) > 624:
+        result["dc_battery_temp"] = make_measurement(round(int.from_bytes(data[622:624], "little") / 10, 1), "'C")
+    
+    if len(data) > 626:
+        result["dc_charge_state"] = make_measurement(int.from_bytes(data[624:626], "little"), "")
     
     return result
 
