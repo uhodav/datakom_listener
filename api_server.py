@@ -305,7 +305,7 @@ async def get_parameter_names(language: Optional[str] = Query(None, description=
 
 
 @app.get("/api/dump_devm_alarm")
-async def get_alarms():
+async def get_alarms(language: Optional[str] = Query(None, description="Language code: uk, en, ru")):
     """Get current alarm states"""
     
     # Ensure listener is running
@@ -315,11 +315,20 @@ async def get_alarms():
     
     alerts = load_alerts()
     
-    # Convert to API format with capital letters
+    # Load language module for translations
+    lang_code = language or DEFAULT_LANGUAGE
+    lang_module = load_language_module(lang_code)
+    alarm_messages = lang_module.ALARM_MESSAGES
+    
+    # Convert alarm indices to translated messages
+    def translate_alarms(alarm_list):
+        return [alarm_messages.get(idx, f"Alarm #{idx}") for idx in alarm_list]
+    
+    # Convert to API format with capital letters and translated messages
     alarm_data = {
-        "ShutDown": alerts.get("shutDown", []),
-        "LoadDump": alerts.get("loadDump", []),
-        "Warning": alerts.get("warning", [])
+        "ShutDown": translate_alarms(alerts.get("shutDown", [])),
+        "LoadDump": translate_alarms(alerts.get("loadDump", [])),
+        "Warning": translate_alarms(alerts.get("warning", []))
     }
     
     return {

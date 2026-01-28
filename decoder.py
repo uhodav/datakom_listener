@@ -4,7 +4,8 @@ Decoder for Datakom D500 MK3 telemetry packets
 
 from datakom_constants import (
     MODE_NAMES, STATE_NAMES, get_alert_category,
-    SENDER_FLAG_HAS_MESSAGE, ALERT_CATEGORY_NOT_USED
+    SENDER_FLAG_HAS_MESSAGE, ALERT_CATEGORY_NOT_USED,
+    get_alert_category_by_index, get_alarm_name, get_alarm_index_by_message
 )
 
 
@@ -168,7 +169,7 @@ def decode_telemetry(data: bytes) -> dict:
         "loadDump": []
     }
     
-    # Parse SENDER slots to find active categories with messages
+    # Parse SENDER slots to find active slots with messages
     active_slots = []
     for i in range(8):
         offset = 258 + (i * 19)
@@ -185,12 +186,7 @@ def decode_telemetry(data: bytes) -> dict:
             has_message = (flag1 & SENDER_FLAG_HAS_MESSAGE) == SENDER_FLAG_HAS_MESSAGE
             
             if has_message:
-                # Get category from flag[2] using constants
-                category = get_alert_category(flag2)
-                
-                # Skip "notUsed" category
-                if category != ALERT_CATEGORY_NOT_USED and category in alerts:
-                    active_slots.append((category, i))
+                active_slots.append(i)  # Just store slot number for now
     
     # Parse messages after SENDER slots
     # Messages start at offset 413 and occupy the region before statistics
@@ -211,10 +207,24 @@ def decode_telemetry(data: bytes) -> dict:
         if len(part_clean) > 0:
             messages.append(part_clean)
     
-    # Match messages to active categories
-    for idx, (category, slot_num) in enumerate(active_slots):
+    # Now match messages to categories based on alarm indices
+    for idx, slot_num in enumerate(active_slots):
         if idx < len(messages):
-            alerts[category].append(messages[idx])
+            message = messages[idx]
+            alarm_index = get_alarm_index_by_message(message)
+            if alarm_index != -1:
+                category = get_alert_category_by_index(alarm_index)
+                if category in alerts:
+                    alerts[category].append(alarm_index)
+            else:
+                # Fallback: use flag2 from the slot
+                slot_offset = 258 + (slot_num * 19)
+                if slot_offset + 19 <= len(data):
+                    flags = data[slot_offset+16:slot_offset+19]
+                    flag2 = flags[2]
+                    category = get_alert_category(flag2)
+                    if category in alerts and category != ALERT_CATEGORY_NOT_USED:
+                        alerts[category].append(message)  # fallback to message
     
     # Store alerts separately (not in telemetry result)
     result["_alerts_internal"] = alerts

@@ -290,6 +290,94 @@ def get_alert_category(flag2_value: int) -> str:
     return ALERT_CATEGORY_MAP.get(flag2_value, ALERT_CATEGORY_NOT_USED)
 
 
+def get_alert_category_by_index(alarm_index: int) -> str:
+    """Get alert category based on alarm index"""
+    # Shutdown alarms (most critical, immediate stop)
+    shutdown_alarms = {
+        50,  # Engine Low RPM (alarm)
+        51,  # Engine High RPM (alarm)
+        52,  # Genset Low Voltage (alarm)
+        53,  # Genset High Voltage (alarm)
+        54,  # Low Oil Pressure (alarm level)
+        55,  # High Oil Pressure (alarm)
+        56,  # Low Engine Temp. (alarm level)
+        57,  # High Engine Temp. (alarm)
+        98,  # Fail To Start (alarm)
+        101, # J1939 ECU Error (alarm level)
+        111, # Gen CB Fail To Close (alarm)
+        112, # Gen CB Fail To Open (alarm)
+        113, # Mains CB Fail To Close (alarm)
+        114, # Mains CB Fail To Open (alarm)
+        136, # Insuff. StartUp Power (alarm)
+        137, # Fuel Pump Failure (alarm)
+        138, # Unit Locked! (alarm)
+        142, # Engine Running! (emergency stop related)
+    }
+    
+    # Load dump alarms (disconnect load, stop after cooldown)
+    load_dump_alarms = {
+        107, # Over Load (load_dump)
+        108, # Reverse Power (load_dump)
+    }
+    
+    # Warning alarms (least critical, flashing LED)
+    warning_alarms = {
+        48,  # Genset Low Frequency
+        49,  # Genset High Frequency
+        58,  # Low Fuel Level
+        59,  # High Fuel Level
+        60,  # Low Oil Temp
+        61,  # High Oil Temp
+        96,  # Low Battery Voltage
+        97,  # High Battery Voltage
+        99,  # Fail To Stop
+        100, # Low Charge Volt
+        104, # Voltage Unbalance
+        105, # Current Unbalance
+        106, # Over Current
+        109, # Gen Phase Order Fail
+        110, # Mains Phase Order Fail
+        116, # Comm. Bus Error
+        117, # Excitation Lost
+        118, # Service 1 Request
+        119, # Service 2 Request
+        120, # Service 3 Request
+        127, # Communication Lost
+        128, # Synchronization Fail
+        130, # Unit Not Tested!
+        143, # Auto Not Ready
+        252, # Fuel Filling!
+        253, # Fuel Stealing!
+        254, # Maintenance Done!
+    }
+    
+    if alarm_index in shutdown_alarms:
+        return ALERT_CATEGORY_SHUTDOWN
+    elif alarm_index in load_dump_alarms:
+        return ALERT_CATEGORY_LOADDUMP
+    elif alarm_index in warning_alarms:
+        return ALERT_CATEGORY_WARNING
+    
+    # Default to warning for unknown alarms
+    return ALERT_CATEGORY_WARNING
+
+
+def get_alarm_index_by_message(message: str) -> int:
+    """Get alarm index by message text (always use English for lookup)"""
+    # Load English translations for lookup
+    try:
+        from lang import en as en_translations
+        en_alarm_messages = en_translations.ALARM_MESSAGES
+    except ImportError:
+        en_alarm_messages = {}
+    
+    # Create reverse mapping: message -> index from English
+    for idx, msg in en_alarm_messages.items():
+        if msg == message:
+            return idx
+    return -1  # Not found
+
+
 def get_alarm_name(alarm_index: int) -> str:
     """Get alarm message name by index"""
     return ALARM_MESSAGES.get(alarm_index, f"Alarm #{alarm_index}")
