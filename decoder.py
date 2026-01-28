@@ -39,8 +39,20 @@ def decode_telemetry(data: bytes) -> dict:
     # LAN IP (offset 37-40)
     result["lan_ip"] = make_measurement(".".join(str(b) for b in data[37:41]))
     
+    # WAN IP (offset 598-601, if available)
+    if len(data) > 601:
+        result["wan_ip"] = make_measurement(".".join(str(b) for b in data[598:602]))
+    
     # Generator name (offset 56-87)
     result["generator_name"] = make_measurement(data[56:88].decode("ascii", errors="ignore").strip('\x00- '))
+    
+    # GPS coordinates (offset 45-52, 4 bytes each, scaled by 1000000)
+    if len(data) > 52:
+        lat_raw = int.from_bytes(data[45:49], "little")
+        result["latitude"] = make_measurement(round(lat_raw / 1000000, 6), "")
+        
+        lon_raw = int.from_bytes(data[49:53], "little")
+        result["longitude"] = make_measurement(round(lon_raw / 1000000, 6), "")
     
     # Mode (offset 103)
     mode_code = data[103]
@@ -169,8 +181,8 @@ def decode_telemetry(data: bytes) -> dict:
             
             flag0, flag1, flag2 = flags[0], flags[1], flags[2]
             
-            # Check if this slot has an active message
-            has_message = (flag1 == SENDER_FLAG_HAS_MESSAGE)
+            # Check if this slot has an active message (use bitmask to be robust)
+            has_message = (flag1 & SENDER_FLAG_HAS_MESSAGE) == SENDER_FLAG_HAS_MESSAGE
             
             if has_message:
                 # Get category from flag[2] using constants
@@ -181,20 +193,23 @@ def decode_telemetry(data: bytes) -> dict:
                     active_slots.append((category, i))
     
     # Parse messages after SENDER slots
-    # Messages start at offset 413, 20 bytes each, pipe-terminated
+    # Messages start at offset 413 and occupy the region before statistics
+    # They are pipe '|' separated; read the whole region and split into parts
     message_start = 413
+    message_end = min(len(data), 503)  # stop before statistics area
+    raw_msgs = data[message_start:message_end]
+
+    try:
+        decoded_msgs = raw_msgs.decode('ascii', errors='ignore')
+    except Exception:
+        decoded_msgs = ''
+
+    parts = [p.strip() for p in decoded_msgs.split('|') if p.strip()]
     messages = []
-    
-    for msg_offset in range(message_start, min(len(data), 500), 20):
-        msg_data = data[msg_offset:msg_offset+20]
-        msg_text = msg_data.decode('ascii', errors='ignore').strip('\x00| ')
-        
-        if msg_text and len(msg_text) > 2:
-            messages.append(msg_text)
-        
-        # Stop at first pipe-terminated block or empty
-        if b'|' in msg_data[1:] or not msg_text:
-            break
+    for part in parts:
+        part_clean = part.replace('\x00', '').strip()
+        if len(part_clean) > 0:
+            messages.append(part_clean)
     
     # Match messages to active categories
     for idx, (category, slot_num) in enumerate(active_slots):
@@ -272,10 +287,27 @@ def decode_telemetry(data: bytes) -> dict:
         result["fuel_consumption_flowm"] = make_measurement(round(int.from_bytes(data[577:581], "little") / 10, 1), "lt.")
     
     # Fuel status (offset 585) - liters
-    if len(data) > 589:
-        result["fuel_status_liters"] = make_measurement(int.from_bytes(data[585:589], "little"), "lt.")
-    
-    # Fuel percent (offset 587) - percent (overlaps with fuel_status, but different interpretation)
+    # NOTE: this field overlaps older/uncertain offsets; read as 2 bytes to avoid
+    # colliding with the separate `fuel_percent` 2-byte field at 587-588.
+    if len(data) > 587:
+        # bytes at 585:587 hold tank capacity (liters). compute current liters
+        tank_capacity = int.from_bytes(data[585:587], "little")
+        result["fuel_tank_capacity_liters"] = make_measurement(tank_capacity, "lt.")
+        # compute current fuel liters using fuel level percent if available
+        flp = None
+        if isinstance(result.get("fuel_level_percent"), dict):
+            flp = result.get("fuel_level_percent").get("value")
+        if flp is not None:
+            try:
+                current_liters = round(tank_capacity * (float(flp) / 100.0), 1)
+            except Exception:
+                current_liters = None
+        else:
+            current_liters = None
+        # Preserve legacy key `fuel_status_liters` as the current liters for API compatibility
+        result["fuel_status_liters"] = make_measurement(current_liters if current_liters is not None else tank_capacity, "lt.")
+
+    # Fuel percent (offset 587) - percent (2 bytes)
     if len(data) > 589:
         result["fuel_percent"] = make_measurement(int.from_bytes(data[587:589], "little"), "%")
     

@@ -148,6 +148,12 @@ PARAM_MAPPING = {
     "battery_group_voltage": (604, "Information Battery Group Voltage"),
     "battery_group_current": (606, "Information Battery Group Current"),
     "discharge_current_counter": (608, "Information Discharge Current Counter"),
+    
+    # GPS and Network
+    "latitude": (45, "GPS Latitude"),
+    "longitude": (49, "GPS Longitude"),
+    "satellites": (589, "GPS Satellites"),
+    "wan_ip": (598, "WAN IP"),
 }
 
 
