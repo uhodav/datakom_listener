@@ -163,8 +163,20 @@ def start_listener() -> bool:
 def load_health() -> dict:
     """Load health status from file or generate default"""
     if HEALTH_JSON.exists():
-        with open(HEALTH_JSON, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(HEALTH_JSON, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            # Log error if needed, return default health
+            return {
+                "status": "unknown",
+                "time": datetime.now().isoformat(),
+                "connect_state": "Unknown",
+                "date_time_change_state": None,
+                "reconnect_wait_minutes": 0,
+                "next_reconnect_time": None,
+                "last_error": f"health.json read error: {e}"
+            }
     
     return {
         "status": "unknown",

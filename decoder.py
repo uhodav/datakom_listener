@@ -11,6 +11,11 @@ from datakom_constants import (
 
 def make_measurement(value, unit=""):
     """Create measurement object with value and unit"""
+    if isinstance(value, tuple) and len(value) == 4:
+        val, data, min_len, empty_value = value
+        if len(data) < min_len:
+            return {"value": empty_value, "unit": unit}
+        value = val
     return {
         "value": value,
         "unit": unit
@@ -25,7 +30,117 @@ def decode_telemetry(data: bytes) -> dict:
     
     result = {}
     
-    # Header
+    # Harmonic levels (10386–10402)
+    for i in range(3, 32):
+        offset = 10386 + (i - 3) * 2
+        if len(data) > offset + 2:
+            result[f"harmonic_{i:02}_level"] = make_measurement(round(int.from_bytes(data[offset:offset+2], "little") / 100, 2), "%")
+
+    # Scopemeter data (10404–10503)
+    for i in range(100):
+        offset = 10404 + i * 2
+        if len(data) > offset + 2:
+            result[f"scopemeter_point_{i+1}"] = make_measurement(int.from_bytes(data[offset:offset+2], "little"), "")
+
+    # Shutdown/LoadDump/Warning alarm bits (10504–10551)
+    for alarm_type, base in zip(["shutdown_bits", "loaddump_bits", "warning_bits"], [10504, 10520, 10536]):
+        bits = []
+        for i in range(16):
+            offset = base + i * 2
+            if len(data) > offset + 2:
+                bits.append(int.from_bytes(data[offset:offset+2], "little"))
+        result[alarm_type] = bits
+
+    # GPS altitude (10598)
+    result["gps_altitude"] = make_measurement((int.from_bytes(data[10598:10602], "little"), data, 10601, "N/A"), "m")
+
+    # Multi-genset fields (11175–11378)
+    multi_fields = {
+        "multi_genset_total_active_power": (11175, "kW"),
+        "multi_genset_total_reactive_power": (11177, "kVAr"),
+        "multi_genset_avg_active_power_load_percent": (11374, "%"),
+        "multi_genset_avg_reactive_power_load_percent": (11375, "%"),
+        "multi_genset_avg_power_factor": (11376, ""),
+        "multi_genset_speed_correction_percent": (11377, "%"),
+        "multi_genset_voltage_correction_percent": (11378, "%")
+    }
+    for key, (offset, unit) in multi_fields.items():
+        result[key] = make_measurement((int.from_bytes(data[offset:offset+2], "little"), data, offset+3, "N/A"), unit)
+
+    # Ethernet MAC address (11684–11686)
+    result["ethernet_mac"] = make_measurement((data[11684:11687].hex().upper(), data, 11687, "N/A"), "")
+
+    # Controller Unique ID (11687–11692)
+    result["controller_unique_id"] = make_measurement((data[11687:11693].hex().upper(), data, 11693, "N/A"), "")
+
+    # Modem IMEI (11693–11700)
+    result["modem_imei"] = make_measurement((data[11693:11701].hex().upper(), data, 11701, "N/A"), "")
+
+    # Battery charge current (11173, 11174)
+    result["battery_charge_current_1"] = make_measurement((int.from_bytes(data[11173:11175], "little"), data, 11176, "N/A"), "A")
+    result["battery_charge_current_2"] = make_measurement((int.from_bytes(data[11175:11177], "little"), data, 11178, "N/A"), "A")
+
+    # Minimum battery voltage (11172)
+    result["min_battery_voltage"] = make_measurement((round(int.from_bytes(data[11172:11174], "little") / 100, 2), data, 11175, "N/A"), "V")
+
+    # Flowmeter (11680)
+    result["flowmeter"] = make_measurement((round(int.from_bytes(data[11680:11682], "little") / 10, 1), data, 11683, "N/A"), "lt.")
+
+    # Selected channel for harmonic/scopemeter (10403)
+    result["selected_channel_harmonic_scopemeter"] = make_measurement((int.from_bytes(data[10403:10405], "little"), data, 10406, "N/A"), "")
+
+    # Magnetic pickup input (10375)
+    result["magnetic_pickup_input_rpm"] = make_measurement((int.from_bytes(data[10375:10377], "little"), data, 10378, "N/A"), "RPM")
+
+    # Engine operation timer (10606)
+    result["engine_operation_timer"] = make_measurement((int.from_bytes(data[10606:10608], "little"), data, 10609, "N/A"), "s")
+
+    # GOV/AVR control output (10607, 10608)
+    result["gov_control_output_percent"] = make_measurement((int.from_bytes(data[10607:10609], "little"), data, 10611, "N/A"), "%")
+    result["avr_control_output_percent"] = make_measurement((int.from_bytes(data[10609:10611], "little"), data, 10611, "N/A"), "%")
+
+    # Device hardware/software version (10610, 10611)
+    result["device_hw_version"] = make_measurement((int.from_bytes(data[10610:10612], "little"), data, 10613, "N/A"), "")
+    result["device_sw_version"] = make_measurement((int.from_bytes(data[10612:10614], "little"), data, 10615, "N/A"), "")
+
+    # Service counters (10622–10644)
+    for i, (offset, key, unit, scale) in enumerate([
+        (10622, "engine_hours_run", "hour", 100),
+        (10624, "engine_hours_since_last_service", "hour", 100),
+        (10626, "engine_days_since_last_service", "day", 100),
+        (10628, "genset_total_active_energy", "kWh", 10),
+        (10630, "genset_total_inductive_reactive_energy", "kVArh-ind", 10),
+        (10632, "genset_total_capacitive_reactive_energy", "kVArh-cap", 10),
+        (10634, "remaining_engine_hours_to_service_1", "hour", 100),
+        (10636, "remaining_engine_days_to_service_1", "day", 100),
+        (10638, "remaining_engine_hours_to_service_2", "hour", 100),
+        (10640, "remaining_engine_days_to_service_2", "day", 100),
+        (10642, "remaining_engine_hours_to_service_3", "hour", 100),
+        (10644, "remaining_engine_days_to_service_3", "day", 100)
+    ]):
+        if len(data) > offset + 4:
+            raw_value = int.from_bytes(data[offset:offset+4], "little")
+            # Проверка на пустые значения
+            if raw_value in (0xFFFFFFFF, 0xFFFFFFFE, 4294967295, 4294967294):
+                value = None
+            else:
+                value = round(raw_value / scale, 2)
+                # Если значение float и очень большое (например, >= 42949651), считаем пустым
+                if isinstance(value, float) and value >= 42949651:
+                    value = None
+            result[key] = make_measurement(value, unit)
+
+    # GPRS IP address (10646)
+    result["gprs_ip"] = make_measurement((".".join(str(b) for b in data[10646:10650]), data, 10651, "N/A"), "")
+
+    # Extension digital input/output status (11167–11168, 11164–11166)
+    result["extension_digital_input_status"] = make_measurement((data[11167:11169].hex().upper(), data, 11170, "N/A"), "")
+    result["extension_digital_output_status"] = make_measurement((data[11164:11167].hex().upper(), data, 11168, "N/A"), "")
+
+    # Function flags (11555)
+    result["function_flags"] = make_measurement((data[11555:11559].hex().upper(), data, 11560, "N/A"), "")
+    
+    # Packet header
     result["header"] = make_measurement(data[0:8].decode("ascii", errors="ignore"))
     
     # Protocol version / packet type (offset 8-15)
@@ -40,20 +155,16 @@ def decode_telemetry(data: bytes) -> dict:
     # LAN IP (offset 37-40)
     result["lan_ip"] = make_measurement(".".join(str(b) for b in data[37:41]))
     
-    # WAN IP (offset 598-601, if available)
-    if len(data) > 601:
-        result["wan_ip"] = make_measurement(".".join(str(b) for b in data[598:602]))
+    # WAN IP address (offset 598-601, if available)
+    # wan_ip (id 33) — старый/альтернативный параметр, смещение 33-36
+    result["wan_ip"] = make_measurement((".".join(str(b) for b in data[33:37]), data, 37, "N/A"), "")
     
     # Generator name (offset 56-87)
     result["generator_name"] = make_measurement(data[56:88].decode("ascii", errors="ignore").strip('\x00- '))
     
     # GPS coordinates (offset 45-52, 4 bytes each, scaled by 1000000)
-    if len(data) > 52:
-        lat_raw = int.from_bytes(data[45:49], "little")
-        result["latitude"] = make_measurement(round(lat_raw / 1000000, 6), "")
-        
-        lon_raw = int.from_bytes(data[49:53], "little")
-        result["longitude"] = make_measurement(round(lon_raw / 1000000, 6), "")
+    result["latitude"] = make_measurement((round(int.from_bytes(data[45:49], "little") / 1000000, 6), data, 53, "N/A"), "")
+    result["longitude"] = make_measurement((round(int.from_bytes(data[49:53], "little") / 1000000, 6), data, 53, "N/A"), "")
     
     # Mode (offset 103)
     mode_code = data[103]
@@ -66,8 +177,7 @@ def decode_telemetry(data: bytes) -> dict:
     result["state_name"] = make_measurement(STATE_NAMES.get(state_code, f"Unknown ({state_code})"))
     
     # MAC Address (offset 592-597, if packet is long enough)
-    if len(data) > 597:
-        result["mac_address"] = make_measurement(data[592:598].hex().upper())
+    result["mac_address"] = make_measurement((data[592:598].hex().upper(), data, 598, "N/A"), "")
     
     # Runtime counter (offset 99-100) - minutes of current session
     runtime_raw = int.from_bytes(data[99:101], "little")
@@ -99,32 +209,27 @@ def decode_telemetry(data: bytes) -> dict:
     result["genset_freq_Hz"] = make_measurement(round(int.from_bytes(data[231:233], "little") / 100, 2), "Hz")
     
     # Mains voltages (offset 125, 129, 133) - scaled by 10
-    if len(data) > 135:
-        result["mains_L1_V"] = make_measurement(round(int.from_bytes(data[125:127], "little") / 10, 1), "V")
-        result["mains_L2_V"] = make_measurement(round(int.from_bytes(data[129:131], "little") / 10, 1), "V")
-        result["mains_L3_V"] = make_measurement(round(int.from_bytes(data[133:135], "little") / 10, 1), "V")
+    result["mains_L1_V"] = make_measurement((round(int.from_bytes(data[125:127], "little") / 10, 1), data, 136, "N/A"), "V")
+    result["mains_L2_V"] = make_measurement((round(int.from_bytes(data[129:131], "little") / 10, 1), data, 136, "N/A"), "V")
+    result["mains_L3_V"] = make_measurement((round(int.from_bytes(data[133:135], "little") / 10, 1), data, 136, "N/A"), "V")
     
     # Mains currents (offset 137, 141, 145) - scaled by 10
-    if len(data) > 147:
-        result["mains_I1_A"] = make_measurement(round(int.from_bytes(data[137:139], "little") / 10, 1), "A")
-        result["mains_I2_A"] = make_measurement(round(int.from_bytes(data[141:143], "little") / 10, 1), "A")
-        result["mains_I3_A"] = make_measurement(round(int.from_bytes(data[145:147], "little") / 10, 1), "A")
+    result["mains_I1_A"] = make_measurement((round(int.from_bytes(data[137:139], "little") / 10, 1), data, 148, "N/A"), "A")
+    result["mains_I2_A"] = make_measurement((round(int.from_bytes(data[141:143], "little") / 10, 1), data, 148, "N/A"), "A")
+    result["mains_I3_A"] = make_measurement((round(int.from_bytes(data[145:147], "little") / 10, 1), data, 148, "N/A"), "A")
     
     # Mains line-to-line voltages (offset 149, 153, 157) - scaled by 10
-    if len(data) > 159:
-        result["mains_L1_L2_V"] = make_measurement(round(int.from_bytes(data[149:151], "little") / 10, 1), "V")
-        result["mains_L2_L3_V"] = make_measurement(round(int.from_bytes(data[153:155], "little") / 10, 1), "V")
-        result["mains_L3_L1_V"] = make_measurement(round(int.from_bytes(data[157:159], "little") / 10, 1), "V")
+    result["mains_L1_L2_V"] = make_measurement((round(int.from_bytes(data[149:151], "little") / 10, 1), data, 160, "N/A"), "V")
+    result["mains_L2_L3_V"] = make_measurement((round(int.from_bytes(data[153:155], "little") / 10, 1), data, 160, "N/A"), "V")
+    result["mains_L3_L1_V"] = make_measurement((round(int.from_bytes(data[157:159], "little") / 10, 1), data, 160, "N/A"), "V")
     
     # Mains power (offset 161, 165, 169) - scaled by 10
-    if len(data) > 171:
-        result["mains_P_total_kW"] = make_measurement(round(int.from_bytes(data[161:163], "little") / 10, 1), "kW")
-        result["mains_Q_total_kVAr"] = make_measurement(round(int.from_bytes(data[165:167], "little") / 10, 1), "kVAr")
-        result["mains_S_total_kVA"] = make_measurement(round(int.from_bytes(data[169:171], "little") / 10, 1), "kVA")
+    result["mains_P_total_kW"] = make_measurement((round(int.from_bytes(data[161:163], "little") / 10, 1), data, 172, "N/A"), "kW")
+    result["mains_Q_total_kVAr"] = make_measurement((round(int.from_bytes(data[165:167], "little") / 10, 1), data, 172, "N/A"), "kVAr")
+    result["mains_S_total_kVA"] = make_measurement((round(int.from_bytes(data[169:171], "little") / 10, 1), data, 172, "N/A"), "kVA")
     
     # Mains frequency (offset 175) - Hz, scaled by 100
-    if len(data) > 177:
-        result["mains_freq_Hz"] = make_measurement(round(int.from_bytes(data[175:177], "little") / 100, 2), "Hz")
+    result["mains_freq_Hz"] = make_measurement((round(int.from_bytes(data[175:177], "little") / 100, 2), data, 178, "N/A"), "Hz")
     
     # Engine RPM (offset 237)
     result["engine_rpm"] = make_measurement(int.from_bytes(data[237:239], "little"), "RPM")
@@ -133,8 +238,7 @@ def decode_telemetry(data: bytes) -> dict:
     result["battery_voltage_Vdc"] = make_measurement(round(int.from_bytes(data[239:241], "little") / 100, 2), "Vdc")
     
     # Charge voltage (offset 241) - V, scaled by 100
-    if len(data) > 243:
-        result["charge_voltage"] = make_measurement(round(int.from_bytes(data[241:243], "little") / 100, 2), "Vdc")
+    result["charge_voltage"] = make_measurement((round(int.from_bytes(data[241:243], "little") / 100, 2), data, 244, "N/A"), "Vdc")
     
     # Oil pressure (offset 243) - bar, scaled by 10
     result["oil_pressure_bar"] = make_measurement(round(int.from_bytes(data[243:245], "little") / 10, 1), "Bar")
@@ -144,14 +248,28 @@ def decode_telemetry(data: bytes) -> dict:
     
     # Fuel level (offset 247) - percent, scaled by 10
     result["fuel_level_percent"] = make_measurement(round(int.from_bytes(data[247:249], "little") / 10, 1), "%")
-    
+
+    # Информационные координаты (offset 10002, 10003) — по 4 байта, little-endian, делить на 1_000_000
+    if len(data) > 10006:
+        lat_raw = int.from_bytes(data[10002:10006], "little")
+        result["latitude"] = make_measurement(round(lat_raw / 1_000_000, 6), "")
+    if len(data) > 10010:
+        lon_raw = int.from_bytes(data[10006:10010], "little")
+        result["longitude"] = make_measurement(round(lon_raw / 1_000_000, 6), "")
+
     # Oil temperature (offset 249) - Celsius, scaled by 10
-    if len(data) > 251:
-        result["oil_temp"] = make_measurement(round(int.from_bytes(data[249:251], "little") / 10, 1), "'C")
-    
+    oil_temp_raw = int.from_bytes(data[249:251], "little")
+    oil_temp = round(oil_temp_raw / 10, 1)
+    if oil_temp in (3276.7, 32767.0, 32767):
+        oil_temp = None
+    result["oil_temp"] = make_measurement((oil_temp, data, 252, "N/A"), "'C")
+
     # Canopy temperature (offset 251) - Celsius, scaled by 10
-    if len(data) > 253:
-        result["canopy_temp"] = make_measurement(round(int.from_bytes(data[251:253], "little") / 10, 1), "'C")
+    canopy_temp_raw = int.from_bytes(data[251:253], "little")
+    canopy_temp = round(canopy_temp_raw / 10, 1)
+    if canopy_temp in (3276.7, 32767.0, 32767):
+        canopy_temp = None
+    result["canopy_temp"] = make_measurement((canopy_temp, data, 254, "N/A"), "'C")
     
     # Alerts structure (offset 258-500)
     # SENDER slots: 8 slots × 19 bytes each (258-407)

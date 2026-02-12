@@ -165,11 +165,11 @@ while True:
         # Timeout for first packet - increased for slow controllers
         conn.settimeout(10)
         
-        print(f"[+] Connection from {addr}")
+        # print(f"[+] Connection from {addr}")
         
         # Read first packet to identify connection type
         try:
-            print(f"[DEBUG] Waiting for data from {client_ip} (timeout 10s)...")
+            # print(f"[DEBUG] Waiting for data from {client_ip} (timeout 10s)...")
             first_data = conn.recv(4096)
             
             if not first_data:
@@ -177,9 +177,9 @@ while True:
                 conn.close()
                 continue
             
-            print(f"[DEBUG] Received {len(first_data)} bytes from {client_ip}")
-            print(f"[DEBUG] First 32 bytes (hex): {first_data[:32].hex()}")
-            print(f"[DEBUG] First 32 bytes (ascii): {''.join(chr(b) if 32 <= b <= 126 else '.' for b in first_data[:32])}")
+            # print(f"[DEBUG] Received {len(first_data)} bytes from {client_ip}")
+            # print(f"[DEBUG] First 32 bytes (hex): {first_data[:32].hex()}")
+            # print(f"[DEBUG] First 32 bytes (ascii): {''.join(chr(b) if 32 <= b <= 126 else '.' for b in first_data[:32])}")
                 
             # Check if it's HTTP/TLS bot traffic
             if first_data.startswith(b'GET ') or first_data.startswith(b'POST ') or \
@@ -200,7 +200,7 @@ while True:
                 else:
                     reason = "HTTP/TLS bot"
                 
-                print(f"[!] Bot detected from {client_ip}: {reason}")
+                # print(f"[!] Bot detected from {client_ip}: {reason}")
                 save_packet(DIR_EVENT, first_data)
                 cleanup_old_packets(DIR_EVENT, 10)
                 
@@ -213,8 +213,8 @@ while True:
             
             # Check if it's Datakom protocol
             if not (first_data.startswith(b"DY0DD500") or first_data.startswith(b"DKV0") or len(first_data) <= 8):
-                print(f"[!] Unknown protocol from {client_ip}, dropping connection")
-                print(f"    First bytes: {first_data[:20].hex()}")
+                # print(f"[!] Unknown protocol from {client_ip}, dropping connection")
+                # print(f"    First bytes: {first_data[:20].hex()}")
                 save_packet(DIR_EVENT, first_data)
                 cleanup_old_packets(DIR_EVENT, 10)
                 
@@ -251,17 +251,17 @@ while True:
         elif pkt_type == "telemetry":
             hex_preview = first_data[:16].hex()
             ascii_preview = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in first_data[:40])
-            print(f"\n{'='*60}")
-            print(f"Packet: {pkt_type.upper()} | Size: {len(first_data)} bytes | From: {addr[0]}")
-            print(f"  Hex: {hex_preview}")
-            print(f"  ASCII: {ascii_preview}")
-            print(f"{'='*60}\n")
+            # print(f"\n{'='*60}")
+            # print(f"Packet: {pkt_type.upper()} | Size: {len(first_data)} bytes | From: {addr[0]}")
+            # print(f"  Hex: {hex_preview}")
+            # print(f"  ASCII: {ascii_preview}")
+            # print(f"{'='*60}\n")
             
             path = save_packet(DIR_TELEMETRY, first_data)
             cleanup_old_packets(DIR_TELEMETRY, 20)
             
             decoded = decode_telemetry(first_data)
-            print(format_telemetry(decoded))
+            # print(format_telemetry(decoded))
             
             alerts = decoded.pop("_alerts_internal", {"shutDown": [], "warning": [], "loadDump": []})
             decoded["timestamp"] = datetime.now().isoformat()
@@ -278,7 +278,7 @@ while True:
             with open(UNKNOWN_JSON, "w", encoding="utf-8") as f:
                 json.dump(unknown, f, indent=2, ensure_ascii=False)
             
-            print(f"Packet: {pkt_type.upper()} | Size: {len(first_data)} bytes")
+            # print(f"Packet: {pkt_type.upper()} | Size: {len(first_data)} bytes")
 
         # Continue reading subsequent packets from this connection
         while True:
@@ -301,25 +301,26 @@ while True:
             
             if pkt_type == "keepalive":
                 keepalive_counter += 1
-                if keepalive_counter % 100 == 0:
-                    print(f"[keepalive] {keepalive_counter} (waiting for telemetry...)")
+                #if keepalive_counter % 100 == 0:
+                #    print(f"[keepalive] {keepalive_counter} (waiting for telemetry...)")
                 continue
             
             # Show details only for important packets
             hex_preview = data[:16].hex()
             ascii_preview = ''.join(chr(b) if 32 <= b <= 126 else '.' for b in data[:40])
-            print(f"\n{'='*60}")
-            print(f"Packet: {pkt_type.upper()} | Size: {len(data)} bytes | From: {addr[0]}")
-            print(f"  Hex: {hex_preview}")
-            print(f"  ASCII: {ascii_preview}")
-            print(f"{'='*60}\n")
+            # print(f"\n{'='*60}")
+            # print(f"Packet: {pkt_type.upper()} | Size: {len(data)} bytes | From: {addr[0]}")
+            # print(f"  Hex: {hex_preview}")
+            # print(f"  ASCII: {ascii_preview}")
+            # print(f"{'='*60}\n")
 
             if pkt_type == "telemetry":
                 path = save_packet(DIR_TELEMETRY, data)
+                cleanup_old_packets(DIR_TELEMETRY, 20)
                 
                 # Decode and display telemetry
                 decoded = decode_telemetry(data)
-                print(format_telemetry(decoded))
+                # print(format_telemetry(decoded))
                 
                 # Extract alerts before saving telemetry
                 alerts = decoded.pop("_alerts_internal", {"shutDown": [], "warning": [], "loadDump": []})
@@ -344,11 +345,11 @@ while True:
                 save_packet(DIR_EVENT, data)
                 cleanup_old_packets(DIR_EVENT, 10)
 
-            print(f"Packet: {pkt_type.upper()} | Size: {len(data)} bytes")
+            # print(f"Packet: {pkt_type.upper()} | Size: {len(data)} bytes")
 
     except TimeoutError as e:
-        print(f"[!] Connection timeout: {e}")
-        print(f"[*] Closing connection, waiting for reconnect...")
+        # print(f"[!] Connection timeout: {e}")
+        # print(f"[*] Closing connection, waiting for reconnect...")
         update_health("Timeout", {
             "timestamp": datetime.now().isoformat(),
             "message": str(e),
@@ -360,8 +361,8 @@ while True:
             pass
         continue
     except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError) as e:
-        print(f"[!] Connection lost: {e}")
-        print(f"[*] Waiting for new connection...")
+        # print(f"[!] Connection lost: {e}")
+        # print(f"[*] Waiting for new connection...")
         update_health("Disconnected", {
             "timestamp": datetime.now().isoformat(),
             "message": str(e),
@@ -369,14 +370,14 @@ while True:
         })
         continue
     except KeyboardInterrupt:
-        print("\n[*] Shutting down...")
+        # print("\n[*] Shutting down...")
         update_health("Stopped")
         break
     except Exception as e:
-        print(f"[!] Error: {e}")
+        # print(f"[!] Error: {e}")
         import traceback
-        traceback.print_exc()
-        print(f"[*] Waiting for new connection...")
+        # traceback.print_exc()
+        # print(f"[*] Waiting for new connection...")
         update_health("Error", {
             "timestamp": datetime.now().isoformat(),
             "message": str(e),

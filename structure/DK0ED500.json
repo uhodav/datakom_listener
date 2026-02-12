@@ -1,0 +1,265 @@
+{
+"HasAlarm":1,
+"HasControl":1,
+"HasDigOut":1,
+"HasPhasor":0,
+"HasCapOps":0,
+"HasOAG1":0,
+
+"MessageID":"DK0ED500",
+"ByteEndian":0,
+"WordEndian":0,
+"FloatEndian":0,
+"TemplateName":"",
+"MsgByteSize":696,
+"TemplateDate":20251121,
+"TemplateType":1,
+"DevModelStr":"",
+"AlarmHead":407,
+"AlarmSize":96,
+
+"TABS":[
+{"TabTag":1,"TabLbl":"Summary"},
+{"TabTag":2,"TabLbl":"Information"},
+{"TabTag":3,"TabLbl":"Genset"},
+{"TabTag":4,"TabLbl":"Mains"},
+{"TabTag":5,"TabLbl":"Engine"},
+{"TabTag":6,"TabLbl":"Alarms"},
+{"TabTag":7,"TabLbl":"Outputs"},
+{"TabTag": 8, "TabLbl": "SyncGroup"}
+],
+
+"ROWS":[
+{"Enable":1,"TabTag":1,"RowLbl":"Mains L1","BusAdr":125,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains L2","BusAdr":129,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains L3","BusAdr":133,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Mains L1-L2","BusAdr":149,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains L2-L3","BusAdr":153,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains L3-L1","BusAdr":157,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Mains I1","BusAdr":137,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains I2","BusAdr":141,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains I3","BusAdr":145,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":10,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Mains Freq","BusAdr":175,"BusCnt":1,"BitIdx":0,"UntIdx":4,"UntTxt":"Hz","MulIdx":9,"ColIdx":0,"RowIdx":12,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Mains P Total","BusAdr":161,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":0,"RowIdx":14,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains Q Total","BusAdr":165,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":0,"RowIdx":15,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Mains S Total","BusAdr":169,"BusCnt":3,"BitIdx":0,"UntIdx":11,"UntTxt":"kVA","MulIdx":6,"ColIdx":0,"RowIdx":16,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Mains Pwr Factor","BusAdr":173,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":10,"ColIdx":0,"RowIdx":18,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Genset L1","BusAdr":181,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":1,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":"GSK_V1"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset L2","BusAdr":185,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":1,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":"GSK_V2"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset L3","BusAdr":189,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":1,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":"GSK_V3"},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Genset L1-L2","BusAdr":205,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":1,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":"GSK_U1"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset L2-L3","BusAdr":209,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":1,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":"GSK_U2"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset L3-L1","BusAdr":213,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":1,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":"GSK_U3"},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Genset I1","BusAdr":193,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":1,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":"GSK_I1"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset I2","BusAdr":197,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":1,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":"GSK_I2"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset I3","BusAdr":201,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":1,"RowIdx":10,"Signed":1,"TipTag":0,"Extras":"GSK_I3"},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Genset Freq","BusAdr":231,"BusCnt":1,"BitIdx":0,"UntIdx":4,"UntTxt":"Hz","MulIdx":9,"ColIdx":1,"RowIdx":12,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Genset P Total","BusAdr":217,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":1,"RowIdx":14,"Signed":1,"TipTag":0,"Extras":"PWR_PT"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset Q Total","BusAdr":221,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":1,"RowIdx":15,"Signed":1,"TipTag":0,"Extras":"PWR_QT"},
+{"Enable":1,"TabTag":1,"RowLbl":"Genset S Total","BusAdr":225,"BusCnt":3,"BitIdx":0,"UntIdx":11,"UntTxt":"kVA","MulIdx":6,"ColIdx":1,"RowIdx":16,"Signed":1,"TipTag":0,"Extras":"PWR_ST"},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Genset Pwr Factor","BusAdr":229,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":10,"ColIdx":1,"RowIdx":18,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Battery Voltage","BusAdr":239,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":9,"ColIdx":2,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":"BV1"},
+{"Enable":1,"TabTag":1,"RowLbl":"Engine RPM","BusAdr":237,"BusCnt":1,"BitIdx":0,"UntIdx":5,"UntTxt":"RPM","MulIdx":0,"ColIdx":2,"RowIdx":1,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Oil Pressure","BusAdr":243,"BusCnt":1,"BitIdx":0,"UntIdx":6,"UntTxt":"Bar","MulIdx":6,"ColIdx":2,"RowIdx":2,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Oil Temp","BusAdr":249,"BusCnt":1,"BitIdx":0,"UntIdx":7,"UntTxt":"'C","MulIdx":6,"ColIdx":2,"RowIdx":3,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Coolant Temp","BusAdr":245,"BusCnt":1,"BitIdx":0,"UntIdx":7,"UntTxt":"'C","MulIdx":6,"ColIdx":2,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":"GSK_ET"},
+{"Enable":1,"TabTag":1,"RowLbl":"Fuel Level","BusAdr":247,"BusCnt":1,"BitIdx":0,"UntIdx":8,"UntTxt":"%","MulIdx":6,"ColIdx":2,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Engine Run Hours","BusAdr":511,"BusCnt":3,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":9,"ColIdx":2,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":"GSK_ERH"},
+{"Enable":1,"TabTag":1,"RowLbl":"Hours to Srv1","BusAdr":515,"BusCnt":3,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":9,"ColIdx":2,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Days to Srv1","BusAdr":519,"BusCnt":3,"BitIdx":0,"UntIdx":15,"UntTxt":"day","MulIdx":9,"ColIdx":2,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":1,"RowLbl":"Total kWh","BusAdr":539,"BusCnt":3,"BitIdx":0,"UntIdx":26,"UntTxt":"kWh","MulIdx":6,"ColIdx":2,"RowIdx":11,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Total kVArh (Ind)","BusAdr":543,"BusCnt":3,"BitIdx":0,"UntIdx":27,"UntTxt":"kVArh","MulIdx":6,"ColIdx":2,"RowIdx":12,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":1,"RowLbl":"Total kVArh (Cap)","BusAdr":547,"BusCnt":3,"BitIdx":0,"UntIdx":27,"UntTxt":"kVArh","MulIdx":6,"ColIdx":2,"RowIdx":13,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"UniqueID","BusAdr":21,"BusCnt":11,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":0,"Signed":0,"TipTag":10,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Latitude","BusAdr":10002,"BusCnt":7,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":1,"Signed":1,"TipTag":1,"Extras":"DGPS_LAT"},
+{"Enable":1,"TabTag":2,"RowLbl":"Longitude","BusAdr":10003,"BusCnt":7,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":2,"Signed":1,"TipTag":1,"Extras":"DGPS_LNG"},
+{"Enable":1,"TabTag":2,"RowLbl":"Satellite(s)","BusAdr":589,"BusCnt":0,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":3,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"Device Type","BusAdr":9,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":5,"Signed":0,"TipTag":2,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"PCKT Version","BusAdr":2,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":6,"Signed":0,"TipTag":3,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"SW Version","BusAdr":11,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":7,"Signed":1,"TipTag":9,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"HW Version","BusAdr":13,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":8,"Signed":1,"TipTag":9,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"Last Update Date","BusAdr":10005,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":10,"Signed":1,"TipTag":5,"Extras":"DEV_LUD"},
+{"Enable":1,"TabTag":2,"RowLbl":"Last Update Time","BusAdr":10005,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":11,"Signed":1,"TipTag":6,"Extras":"DEV_LUT"},
+
+{"Enable":1,"TabTag":2,"RowLbl":"Device Date","BusAdr":99,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":13,"Signed":1,"TipTag":7,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Device Time","BusAdr":99,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":14,"Signed":1,"TipTag":8,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"WAN-IP","BusAdr":33,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":0,"Signed":1,"TipTag":4,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"LAN-IP","BusAdr":37,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":1,"Signed":1,"TipTag":4,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"GSM-IP","BusAdr":41,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":2,"Signed":1,"TipTag":4,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"SITE-ID","BusAdr":57,"BusCnt":20,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":4,"Signed":0,"TipTag":3,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Engine Serial","BusAdr":78,"BusCnt":20,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":5,"Signed":0,"TipTag":3,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"ModBus Port","BusAdr":19,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":7,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"ModBus Addr","BusAdr":18,"BusCnt":0,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":8,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Connection","BusAdr":8,"BusCnt":0,"BitIdx":0,"UntIdx":0,"UntTxt":"~G","MulIdx":0,"ColIdx":1,"RowIdx":9,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"MAC-Rst","BusAdr":590,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":10,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"MAC-Adr","BusAdr":592,"BusCnt":5,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":11,"Signed":0,"TipTag":10,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Information","BusAdr":581,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"~I","MulIdx":0,"ColIdx":1,"RowIdx":12,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":2,"RowLbl":"Min Battery Voltage","BusAdr":602,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":9,"ColIdx":1,"RowIdx":14,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Battery Group Voltage","BusAdr":604,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":6,"ColIdx":1,"RowIdx":15,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Battery Group Current","BusAdr":606,"BusCnt":1,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":1,"RowIdx":16,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":2,"RowLbl":"Discharge Current Counter","BusAdr":608,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"Ah","MulIdx":6,"ColIdx":1,"RowIdx":17,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"Mode","BusAdr":103,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"~M","MulIdx":0,"ColIdx":0,"RowIdx":0,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"State","BusAdr":105,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"~S","MulIdx":0,"ColIdx":0,"RowIdx":1,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"L1","BusAdr":181,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":3,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"L2","BusAdr":185,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"L3","BusAdr":189,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"L1-L2","BusAdr":205,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"L2-L3","BusAdr":209,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"L3-L1","BusAdr":213,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"I1","BusAdr":193,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":11,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"I2","BusAdr":197,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":12,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"I3","BusAdr":201,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":13,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"In","BusAdr":233,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":14,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"Freq","BusAdr":231,"BusCnt":1,"BitIdx":0,"UntIdx":4,"UntTxt":"Hz","MulIdx":9,"ColIdx":0,"RowIdx":16,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"Pwr Factor","BusAdr":229,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":10,"ColIdx":0,"RowIdx":17,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"Tot Active Pwr","BusAdr":217,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":1,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"Tot Reactive Pwr","BusAdr":221,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":1,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"Tot Apparent Pwr","BusAdr":225,"BusCnt":3,"BitIdx":0,"UntIdx":11,"UntTxt":"kVA","MulIdx":6,"ColIdx":1,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":3,"RowLbl":"Total kWh","BusAdr":539,"BusCnt":3,"BitIdx":0,"UntIdx":26,"UntTxt":"kWh","MulIdx":6,"ColIdx":1,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":"KWH_CT"},
+{"Enable":1,"TabTag":3,"RowLbl":"Total kVArh (Ind)","BusAdr":543,"BusCnt":3,"BitIdx":0,"UntIdx":27,"UntTxt":"kVArh","MulIdx":6,"ColIdx":1,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"Total kVArh (Cap)","BusAdr":547,"BusCnt":3,"BitIdx":0,"UntIdx":27,"UntTxt":"kVArh","MulIdx":6,"ColIdx":1,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":3,"RowLbl":"Engine Pwr Rate","BusAdr":553,"BusCnt":1,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":0,"ColIdx":1,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":4,"RowLbl":"L1","BusAdr":125,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"L2","BusAdr":129,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"L3","BusAdr":133,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":4,"RowLbl":"L1-L2","BusAdr":149,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"L2-L3","BusAdr":153,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"L3-L1","BusAdr":157,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":4,"RowLbl":"I1","BusAdr":137,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"I2","BusAdr":141,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"I3","BusAdr":145,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":10,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"In","BusAdr":177,"BusCnt":3,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":0,"RowIdx":11,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":4,"RowLbl":"Freq","BusAdr":175,"BusCnt":1,"BitIdx":0,"UntIdx":4,"UntTxt":"Hz","MulIdx":9,"ColIdx":0,"RowIdx":13,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"Pwr Factor","BusAdr":173,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":10,"ColIdx":0,"RowIdx":14,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":4,"RowLbl":"Tot Active Pwr","BusAdr":161,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":1,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"Tot Reactive Pwr","BusAdr":165,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":1,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"Tot Apparent Pwr","BusAdr":169,"BusCnt":3,"BitIdx":0,"UntIdx":11,"UntTxt":"kVA","MulIdx":6,"ColIdx":1,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":4,"RowLbl":"Total kWh","BusAdr":561,"BusCnt":3,"BitIdx":0,"UntIdx":26,"UntTxt":"kWh","MulIdx":6,"ColIdx":1,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"Total kVArh (Ind)","BusAdr":565,"BusCnt":3,"BitIdx":0,"UntIdx":27,"UntTxt":"kVArh","MulIdx":6,"ColIdx":1,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"Total kVArh (Cap)","BusAdr":569,"BusCnt":3,"BitIdx":0,"UntIdx":27,"UntTxt":"kVArh","MulIdx":6,"ColIdx":1,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":4,"RowLbl":"Total Export kWh","BusAdr":573,"BusCnt":3,"BitIdx":0,"UntIdx":26,"UntTxt":"kWh","MulIdx":6,"ColIdx":1,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":5,"RowLbl":"Charge Voltage","BusAdr":241,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":9,"ColIdx":0,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Battery Voltage1","BusAdr":239,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":9,"ColIdx":0,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Battery Voltage2","BusAdr":555,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":9,"ColIdx":0,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Engine RPM","BusAdr":237,"BusCnt":1,"BitIdx":0,"UntIdx":5,"UntTxt":"RPM","MulIdx":0,"ColIdx":0,"RowIdx":3,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Oil Pressure","BusAdr":243,"BusCnt":1,"BitIdx":0,"UntIdx":6,"UntTxt":"Bar","MulIdx":6,"ColIdx":0,"RowIdx":4,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Oil Temp","BusAdr":249,"BusCnt":1,"BitIdx":0,"UntIdx":7,"UntTxt":"'C","MulIdx":6,"ColIdx":0,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Coolant Temp","BusAdr":245,"BusCnt":1,"BitIdx":0,"UntIdx":7,"UntTxt":"'C","MulIdx":6,"ColIdx":0,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Canopy Temp","BusAdr":251,"BusCnt":1,"BitIdx":0,"UntIdx":7,"UntTxt":"'C","MulIdx":6,"ColIdx":0,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Fuel Level","BusAdr":247,"BusCnt":1,"BitIdx":0,"UntIdx":8,"UntTxt":"%","MulIdx":6,"ColIdx":0,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":"GSK_FP"},
+{"Enable":1,"TabTag":5,"RowLbl":"Fuel Status","BusAdr":585,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"lt.","MulIdx":0,"ColIdx":0,"RowIdx":9,"Signed":0,"TipTag":0,"Extras":"GSK_FA"},
+{"Enable":1,"TabTag":5,"RowLbl":"Fuel Consump(ECU)","BusAdr":598,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"lt.","MulIdx":0,"ColIdx":0,"RowIdx":10,"Signed":0,"TipTag":0,"Extras":"GSK_FC"},
+{"Enable":1,"TabTag":5,"RowLbl":"Fuel Rate(ECU)","BusAdr":614,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"l/h.","MulIdx":6,"ColIdx":0,"RowIdx":11,"Signed":0,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Fuel Consump(FlowM)","BusAdr":577,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"lt.","MulIdx":10,"ColIdx":0,"RowIdx":12,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Fuel Rate(FlowM)","BusAdr":612,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"l/h.","MulIdx":6,"ColIdx":0,"RowIdx":13,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":5,"RowLbl":"Genset Runs","BusAdr":503,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Genset Cranks","BusAdr":507,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Engine Run Hours","BusAdr":511,"BusCnt":3,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":9,"ColIdx":1,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"Hours To Go","BusAdr":587,"BusCnt":1,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":6,"ColIdx":1,"RowIdx":3,"Signed":0,"TipTag":0,"Extras":"GSK_H2G"},
+
+{"Enable":1,"TabTag":5,"RowLbl":"Hours to Srv1","BusAdr":515,"BusCnt":3,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":9,"ColIdx":1,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":"H2S1"},
+{"Enable":1,"TabTag":5,"RowLbl":"Hours to Srv2","BusAdr":523,"BusCnt":3,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":9,"ColIdx":1,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":"H2S2"},
+{"Enable":1,"TabTag":5,"RowLbl":"Hours to Srv3","BusAdr":531,"BusCnt":3,"BitIdx":0,"UntIdx":14,"UntTxt":"hour","MulIdx":9,"ColIdx":1,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":"H2S3"},
+
+{"Enable":1,"TabTag":5,"RowLbl":"Days to Srv1","BusAdr":519,"BusCnt":3,"BitIdx":0,"UntIdx":15,"UntTxt":"day","MulIdx":9,"ColIdx":1,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":"D2S1"},
+{"Enable":1,"TabTag":5,"RowLbl":"Days to Srv2","BusAdr":527,"BusCnt":3,"BitIdx":0,"UntIdx":15,"UntTxt":"day","MulIdx":9,"ColIdx":1,"RowIdx":10,"Signed":1,"TipTag":0,"Extras":"D2S2"},
+{"Enable":1,"TabTag":5,"RowLbl":"Days to Srv3","BusAdr":535,"BusCnt":3,"BitIdx":0,"UntIdx":15,"UntTxt":"day","MulIdx":9,"ColIdx":1,"RowIdx":11,"Signed":1,"TipTag":0,"Extras":"D2S3"},
+
+{"Enable":1,"TabTag":5,"RowLbl":"DC Alternator Voltage","BusAdr":616,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":6,"ColIdx":2,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"DC Load Battery Voltage","BusAdr":618,"BusCnt":1,"BitIdx":0,"UntIdx":3,"UntTxt":"Vdc","MulIdx":6,"ColIdx":2,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"DC Actual Current","BusAdr":620,"BusCnt":1,"BitIdx":0,"UntIdx":2,"UntTxt":"A","MulIdx":6,"ColIdx":2,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"DC Battery Temp","BusAdr":622,"BusCnt":1,"BitIdx":0,"UntIdx":7,"UntTxt":"'C","MulIdx":6,"ColIdx":2,"RowIdx":3,"Signed":1,"TipTag":0,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"DC Charge State","BusAdr":624,"BusCnt":0,"BitIdx":0,"UntIdx":0,"UntTxt":"BCS","MulIdx":0,"ColIdx":2,"RowIdx":4,"Signed":0,"TipTag":0,"Extras":""},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Sync Flags","BusAdr":631,"BusCnt":0,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":0,"Signed":0,"TipTag":0,"Extras":"sDeltaVFTetaOKFlags"},
+{"Enable":1,"TabTag":8,"RowLbl":"Sync ΔV","BusAdr":632,"BusCnt":3,"BitIdx":0,"UntIdx":1,"UntTxt":"V","MulIdx":6,"ColIdx":0,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":"sDeltaV"},
+{"Enable":1,"TabTag":8,"RowLbl":"Sync ΔF","BusAdr":636,"BusCnt":3,"BitIdx":0,"UntIdx":4,"UntTxt":"Hz","MulIdx":9,"ColIdx":0,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":"sDeltaF"},
+{"Enable":1,"TabTag":8,"RowLbl":"Sync ΔTeta","BusAdr":640,"BusCnt":3,"BitIdx":0,"UntIdx":0,"UntTxt":"deg","MulIdx":6,"ColIdx":0,"RowIdx":3,"Signed":1,"TipTag":0,"Extras":"sDeltaTetaPhaseAngle"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Governor PWM","BusAdr":644,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":"sGOV_PWM_Val"},
+{"Enable":1,"TabTag":8,"RowLbl":"AVR PWM","BusAdr":646,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":0,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":"sAVR_PWM_Val"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"P Target","BusAdr":648,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":0,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":"sPtarget"},
+{"Enable":1,"TabTag":8,"RowLbl":"P Genset","BusAdr":652,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":0,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":"sPgenset"},
+{"Enable":1,"TabTag":8,"RowLbl":"Q Target","BusAdr":656,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":0,"RowIdx":10,"Signed":1,"TipTag":0,"Extras":"sQtarget"},
+{"Enable":1,"TabTag":8,"RowLbl":"Q Genset","BusAdr":660,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":0,"RowIdx":11,"Signed":1,"TipTag":0,"Extras":"sQgenset"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Speed Corr %","BusAdr":664,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":0,"RowIdx":13,"Signed":1,"TipTag":0,"Extras":"sSpeedCorrPercent"},
+{"Enable":1,"TabTag":8,"RowLbl":"Volt Corr %","BusAdr":666,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":0,"RowIdx":14,"Signed":1,"TipTag":0,"Extras":"sVoltCorrPercent"},
+{"Enable":1,"TabTag":8,"RowLbl":"Unit Timer","BusAdr":668,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"sec","MulIdx":0,"ColIdx":0,"RowIdx":15,"Signed":0,"TipTag":0,"Extras":"sUnitTimer"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"MoreGen Timeout","BusAdr":670,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"sec","MulIdx":6,"ColIdx":1,"RowIdx":0,"Signed":0,"TipTag":0,"Extras":"sMoreGenTimeout"},
+{"Enable":1,"TabTag":8,"RowLbl":"LessGen Timeout","BusAdr":672,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"sec","MulIdx":6,"ColIdx":1,"RowIdx":1,"Signed":0,"TipTag":0,"Extras":"sLessGenTimeout"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Multi P Total","BusAdr":674,"BusCnt":3,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":6,"ColIdx":1,"RowIdx":3,"Signed":1,"TipTag":0,"Extras":"sMultiTotkW"},
+{"Enable":1,"TabTag":8,"RowLbl":"Multi Q Total","BusAdr":678,"BusCnt":3,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":6,"ColIdx":1,"RowIdx":4,"Signed":1,"TipTag":0,"Extras":"sMultiTotkVAr"},
+{"Enable":1,"TabTag":8,"RowLbl":"Multi PF","BusAdr":682,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":10,"ColIdx":1,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":"sMultiPF"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Avg P %","BusAdr":684,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":1,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":"sMultiAvgkWPer"},
+{"Enable":1,"TabTag":8,"RowLbl":"Reserved %","BusAdr":686,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":1,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":"sReservedPer"},
+{"Enable":1,"TabTag":8,"RowLbl":"Avg Q %","BusAdr":688,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":1,"RowIdx":9,"Signed":1,"TipTag":0,"Extras":"sMultiAvgkVArPer"},
+{"Enable":1,"TabTag":8,"RowLbl":"Next Stop","BusAdr":690,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":10,"Signed":0,"TipTag":0,"Extras":"sNextStop"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Multi kW %","BusAdr":692,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":1,"RowIdx":12,"Signed":1,"TipTag":0,"Extras":"sMultikWPer"},
+{"Enable":1,"TabTag":8,"RowLbl":"Multi kVAr %","BusAdr":694,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"%","MulIdx":6,"ColIdx":1,"RowIdx":13,"Signed":1,"TipTag":0,"Extras":"sMultikVArPer"},
+{"Enable":1,"TabTag":8,"RowLbl":"Next Start","BusAdr":696,"BusCnt":1,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":14,"Signed":0,"TipTag":0,"Extras":"sNextStart"},
+{"Enable":1,"TabTag":8,"RowLbl":"MultiGen Flags","BusAdr":698,"BusCnt":2,"BitIdx":0,"UntIdx":0,"UntTxt":"","MulIdx":0,"ColIdx":1,"RowIdx":15,"Signed":0,"TipTag":0,"Extras":"sMultiGenStatFlags"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Gen1 Act Pwr","BusAdr":700,"BusCnt":1,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":0,"ColIdx":2,"RowIdx":0,"Signed":1,"TipTag":0,"Extras":"sGenActPow[0]"},
+{"Enable":1,"TabTag":8,"RowLbl":"Gen2 Act Pwr","BusAdr":702,"BusCnt":1,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":0,"ColIdx":2,"RowIdx":1,"Signed":1,"TipTag":0,"Extras":"sGenActPow[1]"},
+{"Enable":1,"TabTag":8,"RowLbl":"Gen3 Act Pwr","BusAdr":704,"BusCnt":1,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":0,"ColIdx":2,"RowIdx":2,"Signed":1,"TipTag":0,"Extras":"sGenActPow[2]"},
+{"Enable":1,"TabTag":8,"RowLbl":"Gen4 Act Pwr","BusAdr":706,"BusCnt":1,"BitIdx":0,"UntIdx":9,"UntTxt":"kW","MulIdx":0,"ColIdx":2,"RowIdx":3,"Signed":1,"TipTag":0,"Extras":"sGenActPow[3]"},
+
+{"Enable":1,"TabTag":8,"RowLbl":"Gen1 React Pwr","BusAdr":708,"BusCnt":1,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":0,"ColIdx":2,"RowIdx":5,"Signed":1,"TipTag":0,"Extras":"sGenReactPow[0]"},
+{"Enable":1,"TabTag":8,"RowLbl":"Gen2 React Pwr","BusAdr":710,"BusCnt":1,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":0,"ColIdx":2,"RowIdx":6,"Signed":1,"TipTag":0,"Extras":"sGenReactPow[1]"},
+{"Enable":1,"TabTag":8,"RowLbl":"Gen3 React Pwr","BusAdr":712,"BusCnt":1,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":0,"ColIdx":2,"RowIdx":7,"Signed":1,"TipTag":0,"Extras":"sGenReactPow[2]"},
+{"Enable":1,"TabTag":8,"RowLbl":"Gen4 React Pwr","BusAdr":714,"BusCnt":1,"BitIdx":0,"UntIdx":10,"UntTxt":"kVAr","MulIdx":0,"ColIdx":2,"RowIdx":8,"Signed":1,"TipTag":0,"Extras":"sGenReactPow[3]"},
+
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":255,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X0","MulIdx":0,"ColIdx":2,"RowIdx":6,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":274,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X1","MulIdx":0,"ColIdx":2,"RowIdx":7,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":293,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X2","MulIdx":0,"ColIdx":2,"RowIdx":8,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":312,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X3","MulIdx":0,"ColIdx":2,"RowIdx":9,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":331,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X4","MulIdx":0,"ColIdx":2,"RowIdx":10,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":350,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X5","MulIdx":0,"ColIdx":2,"RowIdx":11,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":369,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X6","MulIdx":0,"ColIdx":2,"RowIdx":12,"Signed":1,"TipTag":11,"Extras":""},
+{"Enable":1,"TabTag":5,"RowLbl":"","BusAdr":388,"BusCnt":18,"BitIdx":0,"UntIdx":0,"UntTxt":"X7","MulIdx":0,"ColIdx":2,"RowIdx":13,"Signed":1,"TipTag":11,"Extras":""}
+],
+
+"EXTS":[]
+}

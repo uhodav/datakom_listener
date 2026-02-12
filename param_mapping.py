@@ -74,7 +74,6 @@ PARAM_MAPPING = {
     "canopy_temp": (251, "Engine Canopy Temp"),
     "fuel_level_percent": (247, "Engine Fuel Level"),
     "fuel_status_liters": (585, "Engine Fuel Status"),
-    "fuel_percent": (587, "Engine Fuel Percent"),
     
     # Engine Alternator & Battery
     "alternator_voltage": (616, "Engine Alternator Voltage"),
@@ -95,7 +94,7 @@ PARAM_MAPPING = {
     "days_to_service_2": (527, "Engine Days to Srv2"),
     "hours_to_service_3": (531, "Engine Hours to Srv3"),
     "days_to_service_3": (535, "Engine Days to Srv3"),
-    # NOTE: hours_to_go offset unknown (ID 587 conflict with fuel_percent)
+    "hours_to_go": (587, "Engine Hours to Go"),
     
     # Engine Fuel (ECU)
     "fuel_consumption_ecu": (598, "Engine Fuel Consumption (ECU)"),
@@ -153,7 +152,6 @@ PARAM_MAPPING = {
     "latitude": (45, "GPS Latitude"),
     "longitude": (49, "GPS Longitude"),
     "satellites": (589, "GPS Satellites"),
-    "wan_ip": (598, "WAN IP"),
 }
 
 
