@@ -205,7 +205,7 @@ curl http://localhost:8765/api/dump_devm_param_names?language=uk
 }
 ```
 
-**Note / Примітка:** With `language` parameter, the `title` field contains translated name. Without language, `title` will be empty string. / З параметром `language` поле `title` містить перекладену назву. Без мови `title` буде порожнім рядком.
+**Note / Примітка:** The `title` field contains the translated name; without `language` the default language (`DATAKOM_LANG`, `uk`) is used. / Поле `title` містить перекладену назву; без `language` використовується мова за замовчуванням (`DATAKOM_LANG`, `uk`).
 ```
 
 ### GET /api/dump_devm_alarm
@@ -229,6 +229,37 @@ Get current alarm signals / Отримати поточні аварійні с�
   "cached": true
 }
 ```
+
+### POST /api/device/control
+Simulate a controller pushbutton / Імітувати кнопку контролера
+
+Requires header `X-API-Key` — our own service key from `data/control_key` (or env `DATAKOM_CONTROL_KEY`), not a Datakom/SCADA password. How to generate it: [README.md → Remote Control](README.md#remote-control--дистанційне-керування).
+Потрібен заголовок `X-API-Key` — власний ключ сервісу з `data/control_key` (або змінної `DATAKOM_CONTROL_KEY`), не пароль Datakom/SCADA. Як згенерувати: [README.md → Дистанційне керування](README.md#remote-control--дистанційне-керування).
+
+**Body / Тіло:** `{"action": "stop" | "auto" | "manual" | "test"}`
+
+```bash
+curl -X POST "https://bierdeckel.com.ua/datakom/api/device/control" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <key>" \
+  -d '{"action": "auto"}'
+```
+
+The request returns after the controller confirms the command (up to 10 s). The new mode appears in telemetry (param 103) within a few seconds.
+Запит повертається після підтвердження контролером (до 10 с). Новий режим з'являється в телеметрії (параметр 103) за кілька секунд.
+
+| HTTP | Response / Відповідь |
+|---|---|
+| 200 | `{"success": true, "action": "auto", "confirmed_at": "..."}` |
+| 400 | Action not allowed / Дія не дозволена (`allowed` lists permitted actions) |
+| 401 | Invalid or missing X-API-Key |
+| 403 | Control is disabled: no control key configured |
+| 502 | `Controller is not connected` / `No confirmation from controller within 10s` / listener unavailable |
+
+`GET /api/health` also reports `control_enabled` and `control_actions`. / також повертає `control_enabled` і `control_actions`.
+
+Command mapping (register `0x2011`, Modbus write via `DKV0MBUS` frame): STOP=1, AUTO=2, MANUAL=4, TEST=8 (GENSET=0x10, MAINS=0x20 disabled by default). Telemetry mode values differ: STOP=1, MANUAL=2, AUTO=4, TEST=8.
+Відповідність команд (регістр `0x2011`, запис Modbus у кадрі `DKV0MBUS`): STOP=1, AUTO=2, MANUAL=4, TEST=8. Значення режиму в телеметрії інші: STOP=1, MANUAL=2, AUTO=4, TEST=8.
 
 ## Monitoring / Моніторинг
 
