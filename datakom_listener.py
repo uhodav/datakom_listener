@@ -199,6 +199,17 @@ def handle_packet(data: bytes):
         save_event(data)
 
 
+def split_glued_keepalives(data: bytes) -> list:
+    """TCP may coalesce an 8-byte keepalive header with the following telemetry packet
+    (seen as b"DY0DD500DY0DD500..."); decoding that as one packet shifts every offset by 8."""
+    parts = []
+    while len(data) > 16 and data.startswith(DATAKOM_HEADERS) and data[8:16] == data[:8]:
+        parts.append(data[:8])
+        data = data[8:]
+    parts.append(data)
+    return parts
+
+
 def bot_reason(data: bytes):
     for signature, reason in BOT_SIGNATURES:
         if data.startswith(signature):
@@ -249,8 +260,9 @@ def handle_connection(conn: socket.socket, addr):
                 save_event(data)
                 break
 
-            conn.sendall(data[:8])
-            handle_packet(data)
+            for packet in split_glued_keepalives(data):
+                conn.sendall(packet[:8])
+                handle_packet(packet)
             update_health(packet=True)
             data = conn.recv(4096)
 

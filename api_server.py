@@ -178,6 +178,19 @@ def telemetry_to_params(telemetry: dict, lang_code: str = None) -> List[dict]:
             }
             params.append(param)
 
+    # Last update = when the server received the packet (decoder only knows the controller clock)
+    ts = telemetry.get('timestamp')
+    if ts:
+        param_id, label = get_param_id_label('last_update_date')
+        params.append({
+            "id": param_id,
+            "label": label,
+            "labelHint": get_param_title(label, lang_code or DEFAULT_LANGUAGE),
+            "value": ts[:19].replace('T', ' '),
+            "valueHint": "",
+            "unit": "",
+        })
+
     # Sort by ID for consistent output
     params.sort(key=lambda x: x['id'])
 
@@ -245,7 +258,7 @@ async def get_parameter_names(language: Optional[str] = Query(None, description=
     param_names = get_all_param_names()
 
     for param in param_names:
-        param['title'] = get_param_title(param['label'], language) if language else ""
+        param['title'] = get_param_title(param['label'], language or DEFAULT_LANGUAGE)
 
     return {
         "success": True,

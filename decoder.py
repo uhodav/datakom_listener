@@ -2,11 +2,25 @@
 Decoder for Datakom D500 MK3 telemetry packets
 """
 
+from datetime import datetime
 from datakom_constants import (
     MODE_NAMES, STATE_NAMES, get_alert_category,
     SENDER_FLAG_HAS_MESSAGE, ALERT_CATEGORY_NOT_USED,
     get_alert_category_by_index, get_alarm_name, get_alarm_index_by_message
 )
+
+
+def decode_device_datetime(raw: bytes) -> str:
+    """Decode packed date/time: bits 0-4 sec/2, 5-10 min, 11-15 hour, 16-20 day, 21-24 month, 25-31 year-2000"""
+    if len(raw) < 4:
+        return "N/A"
+    v = int.from_bytes(raw, "little")
+    try:
+        dt = datetime(2000 + (v >> 25), (v >> 21) & 0xF, (v >> 16) & 0x1F,
+                      (v >> 11) & 0x1F, (v >> 5) & 0x3F, (v & 0x1F) * 2)
+    except ValueError:
+        return "N/A"
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def make_measurement(value, unit=""):
@@ -160,6 +174,10 @@ def decode_telemetry(data: bytes) -> dict:
     result["wan_ip"] = make_measurement((".".join(str(b) for b in data[33:37]), data, 37, "N/A"), "")
     # wan_ip_2 (id 598) — основной параметр, смещение 598-601
     result["wan_ip_2"] = make_measurement((".".join(str(b) for b in data[598:602]), data, 602, "N/A"), "")
+    
+    # Controller date/time (offset 99-102): DOS-style packed little-endian 32-bit value,
+    # year counted from 2000. Controller clock, not the server's.
+    result["device_date"] = make_measurement(decode_device_datetime(data[99:103]), "")
     
     # Generator name (offset 56-87)
     result["generator_name"] = make_measurement(data[56:88].decode("ascii", errors="ignore").strip('\x00- '))
