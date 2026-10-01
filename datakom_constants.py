@@ -39,17 +39,12 @@ ALARM_MESSAGES = _translations.ALARM_MESSAGES
 OUTPUT_FUNCTIONS = _translations.OUTPUT_FUNCTIONS
 
 # =============================================================================
-# UNIT MODES (offset 103)
+# UNIT MODES (offset 103) - bitmask, Modbus register 10605
 # =============================================================================
-MODE_STOP = 0
-MODE_AUTO = 1
-MODE_MANUAL = 2
-MODE_TEST = 3
-MODE_AUTO_START = 4
-MODE_REMOTE = 5
-MODE_SCHEDULE = 6
-MODE_MAINTENANCE = 7
-MODE_EMERGENCY = 8
+MODE_STOP = 1
+MODE_MANUAL = 2  # RUN on D500
+MODE_AUTO = 4
+MODE_TEST = 8
 
 # =============================================================================
 # GENSET STATES (offset 105)
@@ -201,7 +196,7 @@ class Offsets:
     LAN_IP = 37                 # 4 bytes
     GENERATOR_NAME = 56         # 32 bytes (ASCII, null-padded)
     RUNTIME_MINUTES = 99        # 2 bytes (little-endian)
-    MODE = 103                  # 1 byte (0/1/3/4)
+    MODE = 103                  # 1 byte (1/2/4/8)
     STATE = 105                 # 1 byte (0-31+)
     
     # Electrical measurements

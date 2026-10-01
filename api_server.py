@@ -3,26 +3,19 @@ Datakom D500 MK3 REST API Server
 Provides HTTP API access to telemetry data collected by datakom_listener
 """
 
-import os
 import json
-import subprocess
-import psutil
+import importlib
+import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
 from fastapi import FastAPI, Query
-from fastapi.responses import JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
-from config import API_HOST, API_PORT, DEFAULT_LANGUAGE
+from config import (API_HOST, API_PORT, DEFAULT_LANGUAGE,
+                    LISTENER_DEAD_AFTER_SECONDS, TELEMETRY_STALE_SECONDS)
 from param_mapping import get_param_id_label, get_all_param_names
-import importlib
-
-app = FastAPI(
-    title="Datakom D500 MK3 API",
-    version="1.0.0",
-    redoc_url=None  # Disable ReDoc, only use Swagger /docs
-)
 
 # Paths
 DATA_DIR = Path("data")
@@ -30,11 +23,19 @@ TELEMETRY_JSON = DATA_DIR / "telemetry.json"
 ALERTS_JSON = DATA_DIR / "alerts.json"
 HEALTH_JSON = DATA_DIR / "health.json"
 
-# Listener process management
-LISTENER_SCRIPT = "datakom_listener.py"
-listener_process: Optional[subprocess.Popen] = None
-listener_status_cache = {"running": False, "last_check": 0}
-CACHE_TTL = 1.0  # Cache status for 1 second
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    DATA_DIR.mkdir(exist_ok=True)
+    yield
+
+
+app = FastAPI(
+    title="Datakom D500 MK3 API",
+    version="1.0.0",
+    redoc_url=None,  # Disable ReDoc, only use Swagger /docs
+    lifespan=lifespan,
+)
 
 
 def load_language_module(lang_code: str):
@@ -91,135 +92,81 @@ def get_value_hint(label: str, value, lang_code: str = None) -> str:
 
 
 def is_listener_running() -> bool:
-    """Check if listener process is running (optimized with caching)"""
-    global listener_process, listener_status_cache
-    
-    # Use cached result if fresh (< 1 second old)
-    import time
-    now = time.time()
-    if now - listener_status_cache["last_check"] < CACHE_TTL:
-        return listener_status_cache["running"]
-    
-    # Check our subprocess first (if started by this API)
-    if listener_process and listener_process.poll() is None:
-        listener_status_cache.update({"running": True, "last_check": now})
-        return True
-    
-    # For PM2-managed processes, check health.json timestamp
-    # If file was updated recently (within 60 seconds), listener is alive
+    """Listener is managed by PM2 and rewrites health.json every HEALTH_HEARTBEAT_SECONDS,
+    so a fresh file means the process is alive."""
     try:
-        if HEALTH_JSON.exists():
-            file_mtime = HEALTH_JSON.stat().st_mtime
-            age_seconds = now - file_mtime
-            
-            # If health.json updated within last 60 seconds, listener is running
-            is_running = (age_seconds < 60)
-            listener_status_cache.update({"running": is_running, "last_check": now})
-            return is_running
-    except Exception as e:
-        print(f"Error checking listener health file: {e}")
-    
-    # Fallback: try to connect to listener port
-    try:
-        import socket
-        from config import LISTENER_PORT
-        
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        result = sock.connect_ex(('127.0.0.1', LISTENER_PORT))
-        sock.close()
-        
-        is_running = (result == 0)
-        listener_status_cache.update({"running": is_running, "last_check": now})
-        return is_running
-    except Exception as e:
-        print(f"Error checking listener port: {e}")
-        listener_status_cache.update({"running": False, "last_check": now})
+        return time.time() - HEALTH_JSON.stat().st_mtime < LISTENER_DEAD_AFTER_SECONDS
+    except FileNotFoundError:
         return False
 
 
-def start_listener() -> bool:
-    """Start listener process if not running"""
-    global listener_process
-    
-    if is_listener_running():
-        return True
-    
+def load_json(path: Path, default):
+    """Read a JSON file written by the listener; fall back to default if missing or unreadable"""
     try:
-        # Use python3 on Linux, python on Windows
-        python_cmd = "python" if os.name == 'nt' else "python3"
-        listener_process = subprocess.Popen(
-            [python_cmd, LISTENER_SCRIPT],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
-        )
-        return True
-    except Exception as e:
-        print(f"Failed to start listener: {e}")
-        return False
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return default
+    except (OSError, ValueError) as e:
+        print(f"Failed to read {path}: {e}")
+        return default
 
 
 def load_health() -> dict:
     """Load health status from file or generate default"""
-    if HEALTH_JSON.exists():
-        try:
-            with open(HEALTH_JSON, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            # Log error if needed, return default health
-            return {
-                "status": "unknown",
-                "time": datetime.now().isoformat(),
-                "connect_state": "Unknown",
-                "date_time_change_state": None,
-                "reconnect_wait_minutes": 0,
-                "next_reconnect_time": None,
-                "last_error": f"health.json read error: {e}"
-            }
-    
-    return {
+    return load_json(HEALTH_JSON, {
         "status": "unknown",
-        "time": datetime.now().isoformat(),
         "connect_state": "Unknown",
         "date_time_change_state": None,
-        "reconnect_wait_minutes": 0,
-        "next_reconnect_time": None,
-        "last_error": None
-    }
+        "last_error": None,
+    })
 
 
 def load_telemetry() -> dict:
     """Load latest telemetry data"""
-    if TELEMETRY_JSON.exists():
-        with open(TELEMETRY_JSON, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
+    return load_json(TELEMETRY_JSON, {})
 
 
 def load_alerts() -> dict:
     """Load current alerts"""
-    if ALERTS_JSON.exists():
-        with open(ALERTS_JSON, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {"shutDown": [], "loadDump": [], "warning": []}
+    return load_json(ALERTS_JSON, {"shutDown": [], "loadDump": [], "warning": []})
+
+
+def telemetry_age_seconds(telemetry: dict) -> Optional[int]:
+    """Seconds since the telemetry packet was received, None if there is no telemetry"""
+    ts = telemetry.get('timestamp')
+    if not ts:
+        return None
+    try:
+        return int((datetime.now() - datetime.fromisoformat(ts)).total_seconds())
+    except ValueError:
+        return None
+
+
+def freshness(telemetry: dict) -> dict:
+    """Fields telling clients whether cached data is still current"""
+    age = telemetry_age_seconds(telemetry)
+    return {
+        "data_age_seconds": age,
+        "stale": age is None or age > TELEMETRY_STALE_SECONDS,
+    }
 
 
 def telemetry_to_params(telemetry: dict, lang_code: str = None) -> List[dict]:
     """Convert telemetry JSON to parameter list with fixed IDs"""
     params = []
-    
+
     for key, value_obj in telemetry.items():
         if key in ('timestamp', 'raw_packet_file', '_alerts_internal'):
             continue
-        
+
         if isinstance(value_obj, dict) and 'value' in value_obj:
             param_id, label = get_param_id_label(key)
-            
+
             # Skip unmapped parameters (id=0)
             if param_id == 0:
                 continue
-            
+
             value = value_obj['value']
             param = {
                 "id": param_id,
@@ -230,10 +177,10 @@ def telemetry_to_params(telemetry: dict, lang_code: str = None) -> List[dict]:
                 "unit": value_obj.get('unit', ''),
             }
             params.append(param)
-    
+
     # Sort by ID for consistent output
     params.sort(key=lambda x: x['id'])
-    
+
     return params
 
 
@@ -248,18 +195,19 @@ async def get_health():
     """Server health check"""
     listener_running = is_listener_running()
     health = load_health()
-    
+    telemetry = load_telemetry()
+
     health["listener_running"] = listener_running
     health["status"] = "ok" if listener_running else "listener_stopped"
     health["time"] = datetime.now().isoformat()
-    
+    health["telemetry_timestamp"] = telemetry.get('timestamp')
+    health.update(freshness(telemetry))
+
     if not listener_running:
         health["connect_state"] = "Stopped"
-    elif health.get("connect_state") in ("Unknown", None, "Disconnected", "Stopped") and listener_running:
-        # If listener is running but state indicates it's not active, update to "Listening"
-        # This handles cases where health.json has stale "Stopped" status from previous run
+    elif health.get("connect_state") in ("Unknown", None, "Stopped"):
         health["connect_state"] = "Listening"
-    
+
     return health
 
 
@@ -269,46 +217,36 @@ async def get_parameters(
     language: Optional[str] = Query(None, description="Language code: uk, en, ru")
 ):
     """Get device parameters (all or filtered by id)"""
-    
-    # Ensure listener is running
-    listener_running = is_listener_running()
-    if not listener_running:
-        start_listener()
-    
     telemetry = load_telemetry()
     all_params = telemetry_to_params(telemetry, language)
-    
+
     # Filter by IDs if specified
     if id:
-        requested_ids = [int(x.strip()) for x in id.split(',')]
-        filtered_params = [p for p in all_params if p['id'] in requested_ids]
-        result_params = filtered_params
+        try:
+            requested_ids = {int(x) for x in id.split(',') if x.strip()}
+        except ValueError:
+            return {"success": False, "error": f"Invalid id list: {id}"}
+        result_params = [p for p in all_params if p['id'] in requested_ids]
     else:
         result_params = all_params
-    
+
     return {
         "success": True,
         "result": result_params,
         "cached": True,
-        "timestamp": telemetry.get('timestamp', datetime.now().isoformat())
+        "timestamp": telemetry.get('timestamp', datetime.now().isoformat()),
+        **freshness(telemetry),
     }
 
 
 @app.get("/api/dump_devm_param_names")
 async def get_parameter_names(language: Optional[str] = Query(None, description="Language code: uk, en, ru")):
     """Get all parameter IDs and labels"""
-    
-    # Return all defined parameter names from mapping
     param_names = get_all_param_names()
-    
-    # Add title field with translation if language specified
-    if language:
-        for param in param_names:
-            param['title'] = get_param_title(param['label'], language)
-    else:
-        for param in param_names:
-            param['title'] = ""
-    
+
+    for param in param_names:
+        param['title'] = get_param_title(param['label'], language) if language else ""
+
     return {
         "success": True,
         "params": param_names,
@@ -319,55 +257,27 @@ async def get_parameter_names(language: Optional[str] = Query(None, description=
 @app.get("/api/dump_devm_alarm")
 async def get_alarms(language: Optional[str] = Query(None, description="Language code: uk, en, ru")):
     """Get current alarm states"""
-    
-    # Ensure listener is running
-    listener_running = is_listener_running()
-    if not listener_running:
-        start_listener()
-    
     alerts = load_alerts()
-    
-    # Load language module for translations
-    lang_code = language or DEFAULT_LANGUAGE
-    lang_module = load_language_module(lang_code)
+
+    lang_module = load_language_module(language or DEFAULT_LANGUAGE)
     alarm_messages = lang_module.ALARM_MESSAGES
-    
-    # Convert alarm indices to translated messages
+
     def translate_alarms(alarm_list):
         return [alarm_messages.get(idx, f"Alarm #{idx}") for idx in alarm_list]
-    
-    # Convert to API format with capital letters and translated messages
-    alarm_data = {
-        "ShutDown": translate_alarms(alerts.get("shutDown", [])),
-        "LoadDump": translate_alarms(alerts.get("loadDump", [])),
-        "Warning": translate_alarms(alerts.get("warning", []))
-    }
-    
+
     return {
         "success": True,
-        "alarm": alarm_data,
-        "cached": True
+        "alarm": {
+            "ShutDown": translate_alarms(alerts.get("shutDown", [])),
+            "LoadDump": translate_alarms(alerts.get("loadDump", [])),
+            "Warning": translate_alarms(alerts.get("warning", []))
+        },
+        "cached": True,
+        **freshness(load_telemetry()),
     }
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Ensure data directory exists on startup"""
-    DATA_DIR.mkdir(exist_ok=True)
-    
-    # Start listener if not running
-    if not is_listener_running():
-        start_listener()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    global listener_process
-    if listener_process and listener_process.poll() is None:
-        listener_process.terminate()
-        listener_process.wait(timeout=5)
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=API_HOST, port=API_PORT, log_level="info")
+    # Access log disabled: clients poll every parameter separately and it produced ~25 MB/day;
+    # nginx already keeps access logs for /datakom/api/
+    uvicorn.run(app, host=API_HOST, port=API_PORT, log_level="info", access_log=False)

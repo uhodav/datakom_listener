@@ -4,15 +4,11 @@ Based on official firmware and protocol specification
 """
 
 MODE_NAMES = {
-    0: "STOP",
-    1: "AUTO",
+    # Unit mode bitmask, Modbus register 10605 (500_MODBUS.pdf)
+    1: "STOP",
     2: "MANUAL",
-    3: "TEST",
-    4: "AUTO START",
-    5: "REMOTE",
-    6: "SCHEDULE",
-    7: "MAINTENANCE",
-    8: "EMERGENCY"
+    4: "AUTO",
+    8: "TEST"
 }
 
 STATE_NAMES = {

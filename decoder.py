@@ -158,6 +158,8 @@ def decode_telemetry(data: bytes) -> dict:
     # WAN IP address (offset 598-601, if available)
     # wan_ip (id 33) — старый/альтернативный параметр, смещение 33-36
     result["wan_ip"] = make_measurement((".".join(str(b) for b in data[33:37]), data, 37, "N/A"), "")
+    # wan_ip_2 (id 598) — основной параметр, смещение 598-601
+    result["wan_ip_2"] = make_measurement((".".join(str(b) for b in data[598:602]), data, 602, "N/A"), "")
     
     # Generator name (offset 56-87)
     result["generator_name"] = make_measurement(data[56:88].decode("ascii", errors="ignore").strip('\x00- '))
