@@ -3,18 +3,21 @@ Datakom D500 MK3 REST API Server
 Provides HTTP API access to telemetry data collected by datakom_listener
 """
 
+import hmac
 import json
 import importlib
+import socket
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
-from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse
+from fastapi import Body, FastAPI, Header, Query, Request
+from fastapi.responses import FileResponse, JSONResponse
 import uvicorn
 from config import (API_HOST, API_PORT, DEFAULT_LANGUAGE,
-                    LISTENER_DEAD_AFTER_SECONDS, TELEMETRY_STALE_SECONDS)
+                    LISTENER_DEAD_AFTER_SECONDS, TELEMETRY_STALE_SECONDS,
+                    CONTROL_HOST, CONTROL_PORT, CONTROL_ACTIONS, get_control_key)
 from param_mapping import get_param_id_label, get_all_param_names
 
 # Paths
@@ -221,7 +224,50 @@ async def get_health():
     elif health.get("connect_state") in ("Unknown", None, "Stopped"):
         health["connect_state"] = "Listening"
 
+    health["control_enabled"] = bool(get_control_key())
+    health["control_actions"] = CONTROL_ACTIONS
+
     return health
+
+
+def send_to_listener(action: str, source: str) -> dict:
+    """Forward a control action to the listener's local control port and wait for its result"""
+    try:
+        with socket.create_connection((CONTROL_HOST, CONTROL_PORT), timeout=20) as sock:
+            sock.sendall(json.dumps({"action": action, "source": source}).encode("utf-8"))
+            response = b""
+            while not response.endswith(b"\n"):
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                response += chunk
+        return json.loads(response.decode("utf-8"))
+    except (OSError, ValueError) as e:
+        return {"success": False, "error": f"Listener control port unavailable: {e}"}
+
+
+@app.post("/api/device/control")
+def device_control(
+    request: Request,
+    body: dict = Body(..., examples=[{"action": "stop"}]),
+    x_api_key: Optional[str] = Header(None),
+):
+    """Simulate a controller pushbutton (stop, auto, manual, test). Requires X-API-Key."""
+    key = get_control_key()
+    if not key:
+        return JSONResponse({"success": False, "error": "Control is disabled: no control key configured"}, status_code=403)
+    if not x_api_key or not hmac.compare_digest(x_api_key, key):
+        return JSONResponse({"success": False, "error": "Invalid or missing X-API-Key"}, status_code=401)
+
+    action = str(body.get("action") or body.get("command") or "").lower()
+    if action not in CONTROL_ACTIONS:
+        return JSONResponse({"success": False, "error": f"Action not allowed: {action}",
+                             "allowed": CONTROL_ACTIONS}, status_code=400)
+
+    source = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for") or request.client.host
+    print(f"[CMD] {action.upper()} requested from {source}")
+    result = send_to_listener(action, source)
+    return JSONResponse(result, status_code=200 if result.get("success") else 502)
 
 
 @app.get("/api/dump_devm")

@@ -18,6 +18,23 @@ LISTENER_DEAD_AFTER_SECONDS = 90
 # Controller sends telemetry about once a minute; older data is reported as stale by the API
 TELEMETRY_STALE_SECONDS = int(os.environ.get('DATAKOM_STALE_SECONDS', 300))
 
+# Remote control: the listener accepts commands from the API on a local-only port
+CONTROL_HOST = "127.0.0.1"
+CONTROL_PORT = 8761
+# Actions the API may send (genset/mains = load transfer, disabled by default)
+CONTROL_ACTIONS = [a.strip() for a in os.environ.get('DATAKOM_CONTROL_ACTIONS', 'stop,auto,manual,test').split(',') if a.strip()]
+# API key for control requests: env DATAKOM_CONTROL_KEY or file data/control_key.
+# Control is disabled while no key is configured.
+CONTROL_KEY_FILE = os.path.join('data', 'control_key')
+
+
+def get_control_key() -> str:
+    key = os.environ.get('DATAKOM_CONTROL_KEY', '').strip()
+    if not key and os.path.exists(CONTROL_KEY_FILE):
+        with open(CONTROL_KEY_FILE, encoding='utf-8') as f:
+            key = f.read().strip()
+    return key
+
 # Language settings
 # Read from environment variable DATAKOM_LANG or default to 'uk'
 DEFAULT_LANGUAGE = os.environ.get('DATAKOM_LANG', 'uk')  # uk, en, ru

@@ -5,7 +5,8 @@ import threading
 import traceback
 from datetime import datetime
 from decoder import decode_telemetry, decode_unknown_offsets
-from config import LISTENER_HOST, LISTENER_PORT, HEALTH_HEARTBEAT_SECONDS
+from config import LISTENER_HOST, LISTENER_PORT, HEALTH_HEARTBEAT_SECONDS, CONTROL_HOST, CONTROL_PORT
+from control import MBUS_HEADER, link, mbus_frame_length, send_lock, serve_control
 
 HOST = LISTENER_HOST
 PORT = LISTENER_PORT
@@ -199,14 +200,25 @@ def handle_packet(data: bytes):
         save_event(data)
 
 
-def split_glued_keepalives(data: bytes) -> list:
-    """TCP may coalesce an 8-byte keepalive header with the following telemetry packet
-    (seen as b"DY0DD500DY0DD500..."); decoding that as one packet shifts every offset by 8."""
+def split_packets(data: bytes) -> list:
+    """Split one recv() chunk into protocol units. TCP may coalesce an 8-byte keepalive header with
+    the following packet (seen as b"DY0DD500DY0DD500..."; decoding that as one packet shifts every
+    offset by 8), and command confirmations (DKV0MBUS frames) may be glued to other packets."""
     parts = []
-    while len(data) > 16 and data.startswith(DATAKOM_HEADERS) and data[8:16] == data[:8]:
-        parts.append(data[:8])
-        data = data[8:]
-    parts.append(data)
+    while data:
+        if data.startswith(MBUS_HEADER):
+            length = mbus_frame_length(data)
+            if length is None or length > len(data):
+                parts.append(data)
+                break
+            parts.append(data[:length])
+            data = data[length:]
+        elif len(data) > 16 and data.startswith(DATAKOM_HEADERS) and data[8:16] in (data[:8], MBUS_HEADER):
+            parts.append(data[:8])
+            data = data[8:]
+        else:
+            parts.append(data)
+            break
     return parts
 
 
@@ -251,6 +263,7 @@ def handle_connection(conn: socket.socket, addr):
         with health_lock:
             active_connections += 1
         registered = True
+        link.attach(conn, addr)
         update_health("Connected", packet=True)
 
         data = first_data
@@ -260,8 +273,12 @@ def handle_connection(conn: socket.socket, addr):
                 save_event(data)
                 break
 
-            for packet in split_glued_keepalives(data):
-                conn.sendall(packet[:8])
+            for packet in split_packets(data):
+                if packet.startswith(MBUS_HEADER):
+                    link.on_frame(packet)  # command confirmation, not acknowledged
+                    continue
+                with send_lock:
+                    conn.sendall(packet[:8])
                 handle_packet(packet)
             update_health(packet=True)
             data = conn.recv(4096)
@@ -298,6 +315,7 @@ def handle_connection(conn: socket.socket, addr):
         except OSError:
             pass
         if registered:
+            link.detach(conn)
             with health_lock:
                 active_connections -= 1
                 still_connected = active_connections > 0
@@ -317,6 +335,7 @@ def main():
     # Write health only after bind succeeded, so a duplicate instance can't fake liveness
     update_health("Listening")
     threading.Thread(target=heartbeat_loop, daemon=True).start()
+    threading.Thread(target=serve_control, args=(CONTROL_HOST, CONTROL_PORT), daemon=True).start()
     print(f"[+] Listening on {HOST}:{PORT}")
 
     try:

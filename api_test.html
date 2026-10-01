@@ -81,6 +81,20 @@
       <button onclick="callApi('dump_devm_alarm')">⚠️ Аварії та попередження</button>
       <div class="btn-hint">Отримати поточні аварійні сигнали (ShutDown, LoadDump, Warning)</div>
     </div>
+
+    <div class="block-btns_item">
+      <div><b>Керування контроллером</b></div>
+      <div style="margin-top: 5px;">
+        <label>Ключ керування: <input id="controlKey" type="password" autocomplete="off" placeholder="X-API-Key"></label>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+        <button onclick="sendControl('stop')">⏹ STOP</button>
+        <button onclick="sendControl('auto')">🅰 AUTO</button>
+        <button onclick="sendControl('manual')">✋ MANUAL</button>
+        <button onclick="sendControl('test')">⚙ TEST</button>
+      </div>
+      <div class="btn-hint">Імітація кнопки на панелі контроллера. Після підтвердження контроллером через 5 с показується поточний режим (103) і стан (105).</div>
+    </div>
   </div>
   
   <div id="result">Відповідь з'явиться тут...</div>
@@ -109,6 +123,42 @@
       return `${protocol}//${hostname}/datakom/api/`;
     }
     
+    // Control key lives only in this tab's session
+    try {
+      document.getElementById('controlKey').value = sessionStorage.getItem('datakomControlKey') || '';
+    } catch (e) {}
+
+    async function sendControl(action) {
+      const key = document.getElementById('controlKey').value.trim();
+      const result = document.getElementById('result');
+      if (!key) {
+        result.textContent = 'Вкажіть ключ керування';
+        return;
+      }
+      if (!confirm('Надіслати команду ' + action.toUpperCase() + ' контроллеру генератора?')) {
+        return;
+      }
+      try { sessionStorage.setItem('datakomControlKey', key); } catch (e) {}
+      result.textContent = 'Відправка ' + action.toUpperCase() + '...';
+      try {
+        const res = await fetch(getApiBase() + 'device/control', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json', 'X-API-Key': key},
+          body: JSON.stringify({action: action})
+        });
+        const text = await res.text();
+        result.textContent = 'HTTP ' + res.status + '\n' + formatResponse(text);
+        if (res.ok) {
+          setTimeout(async () => {
+            const state = await fetch(getApiBase() + 'dump_devm?id=103,105');
+            result.textContent += '\n\nСтан через 5 с:\n' + formatResponse(await state.text());
+          }, 5000);
+        }
+      } catch (e) {
+        result.textContent = 'Помилка: ' + e.message;
+      }
+    }
+
     async function callApi(endpoint) {
       document.getElementById('result').textContent = 'Завантаження...';
       try {
