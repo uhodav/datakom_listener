@@ -203,7 +203,8 @@ PARAM_TITLES = {
     "Genset Total kWh": "Total Energy kWh",
     "Genset Total kVArh (Ind)": "Total Reactive Energy (Ind)",
     "Genset Total kVArh (Cap)": "Total Reactive Energy (Cap)",
-    "Genset Engine Pwr Rate": "Engine Power Rate %",
+    "Genset Engine Pwr Rate": "Engine Power Rating",
+    "Engine Hours to Go": "Hours To Go",
     
     # Mains
     "Mains L1": "Mains L1",

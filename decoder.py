@@ -4,10 +4,140 @@ Decoder for Datakom D500 MK3 telemetry packets
 
 from datetime import datetime
 from datakom_constants import (
-    MODE_NAMES, STATE_NAMES, get_alert_category,
-    SENDER_FLAG_HAS_MESSAGE, ALERT_CATEGORY_NOT_USED,
-    get_alert_category_by_index, get_alarm_name, get_alarm_index_by_message
+    MODE_NAMES, STATE_NAMES,
+    get_alert_category_by_index, get_alarm_index_by_message
 )
+
+
+# Fixed-layout fields: key -> (offset, size in bytes, divisor, signed, unit).
+# Offsets, sizes, multipliers and signedness follow structure/DK0ED500.json
+# (MulIdx 0 -> x1, 6 -> /10, 9 -> /100, 10 -> /1000). Keys are referenced by param_mapping.py.
+TEMPLATE_FIELDS = {
+    # Information
+    "connection": (8, 1, 1, False, ""),
+    "sw_version": (11, 2, 1, False, ""),
+    "hw_version": (13, 2, 1, False, ""),
+    "modbus_addr": (18, 1, 1, False, ""),
+    "modbus_port": (19, 2, 1, False, ""),
+    # Mains
+    "mains_L1_V": (125, 4, 10, True, "V"),
+    "mains_L2_V": (129, 4, 10, True, "V"),
+    "mains_L3_V": (133, 4, 10, True, "V"),
+    "mains_I1_A": (137, 4, 10, True, "A"),
+    "mains_I2_A": (141, 4, 10, True, "A"),
+    "mains_I3_A": (145, 4, 10, True, "A"),
+    "mains_L1_L2_V": (149, 4, 10, True, "V"),
+    "mains_L2_L3_V": (153, 4, 10, True, "V"),
+    "mains_L3_L1_V": (157, 4, 10, True, "V"),
+    "mains_P_total_kW": (161, 4, 10, True, "kW"),
+    "mains_Q_total_kVAr": (165, 4, 10, True, "kVAr"),
+    "mains_S_total_kVA": (169, 4, 10, True, "kVA"),
+    "mains_power_factor": (173, 2, 1000, True, ""),
+    "mains_freq_Hz": (175, 2, 100, False, "Hz"),
+    "mains_in": (177, 4, 10, True, "A"),
+    # Genset
+    "genset_L1_V": (181, 4, 10, True, "V"),
+    "genset_L2_V": (185, 4, 10, True, "V"),
+    "genset_L3_V": (189, 4, 10, True, "V"),
+    "genset_I1_A": (193, 4, 10, True, "A"),
+    "genset_I2_A": (197, 4, 10, True, "A"),
+    "genset_I3_A": (201, 4, 10, True, "A"),
+    "genset_L1_L2_V": (205, 4, 10, True, "V"),
+    "genset_L2_L3_V": (209, 4, 10, True, "V"),
+    "genset_L3_L1_V": (213, 4, 10, True, "V"),
+    "genset_P_total_kW": (217, 4, 10, True, "kW"),
+    "genset_Q_total_kVAr": (221, 4, 10, True, "kVAr"),
+    "genset_S_total_kVA": (225, 4, 10, True, "kVA"),
+    "genset_power_factor": (229, 2, 1000, True, ""),
+    "genset_freq_Hz": (231, 2, 100, False, "Hz"),
+    "genset_in": (233, 4, 10, True, "A"),
+    # Engine
+    "engine_rpm": (237, 2, 1, False, "RPM"),
+    "battery_voltage_Vdc": (239, 2, 100, True, "Vdc"),
+    "charge_voltage": (241, 2, 100, True, "Vdc"),
+    "oil_pressure_bar": (243, 2, 10, False, "Bar"),
+    "coolant_temp_C": (245, 2, 10, True, "'C"),
+    "fuel_level_percent": (247, 2, 10, True, "%"),
+    "oil_temp": (249, 2, 10, True, "'C"),
+    "canopy_temp": (251, 2, 10, True, "'C"),
+    # Counters
+    "genset_starts_count": (503, 4, 1, True, ""),
+    "genset_cranks_count": (507, 4, 1, True, ""),
+    "engine_run_hours_total": (511, 4, 100, True, "hour"),
+    "hours_to_service_1": (515, 4, 100, True, "hour"),
+    "days_to_service_1": (519, 4, 100, True, "day"),
+    "hours_to_service_2": (523, 4, 100, True, "hour"),
+    "days_to_service_2": (527, 4, 100, True, "day"),
+    "hours_to_service_3": (531, 4, 100, True, "hour"),
+    "days_to_service_3": (535, 4, 100, True, "day"),
+    "total_kWh": (539, 4, 10, True, "kWh"),
+    "reactive_energy_inductive": (543, 4, 10, True, "kVArh"),
+    "reactive_energy_capacitive": (547, 4, 10, True, "kVArh"),
+    "engine_power_rate_percent": (553, 2, 1, True, "kW"),
+    "battery_voltage_2_Vdc": (555, 2, 100, True, "Vdc"),
+    "mains_total_kWh": (561, 4, 10, True, "kWh"),
+    "mains_total_kVArh_ind": (565, 4, 10, True, "kVArh"),
+    "mains_total_kVArh_cap": (569, 4, 10, True, "kVArh"),
+    "mains_total_export_kWh": (573, 4, 10, True, "kWh"),
+    "fuel_consumption_flowm": (577, 4, 1000, True, "lt."),
+    "information": (581, 2, 1, False, ""),
+    "hours_to_go": (587, 2, 10, False, "hour"),
+    "satellites": (589, 1, 1, False, ""),
+    "mac_reset": (590, 2, 1, False, ""),
+    "fuel_consumption_ecu": (598, 4, 1, False, "lt."),
+    "min_battery_voltage": (602, 2, 100, True, "Vdc"),
+    "battery_group_voltage": (604, 2, 10, True, "Vdc"),
+    "battery_group_current": (606, 2, 10, True, "A"),
+    "discharge_current_counter": (608, 4, 10, False, "Ah"),
+    "fuel_rate_flowm": (612, 2, 10, False, "lt./h"),
+    "fuel_rate_ecu": (614, 2, 10, False, "lt./h"),
+    "alternator_voltage": (616, 2, 10, True, "Vdc"),
+    "load_battery_voltage": (618, 2, 10, True, "Vdc"),
+    "dc_actual_current": (620, 2, 10, True, "A"),
+    "dc_battery_temp": (622, 2, 10, True, "'C"),
+    "dc_charge_state": (624, 1, 1, False, ""),
+}
+
+# Analog sender slots in packet order; keys are referenced by param_mapping.py
+SENDER_KEYS = ["sender_oil_pressure", "sender_engine_temp", "sender_fuel_level_1", "sender_fuel_level_2"]
+# Sender type byte -> unit (seen: 1 oil pressure, 3 coolant temp, 5 fuel level)
+SENDER_UNITS = {1: "Bar", 3: "'C", 5: "%"}
+
+ALARM_HEAD = 407
+ALARM_SIZE = 96
+ALARM_SECTION_ORDER = ["shutDown", "loadDump", "warning"]
+
+
+# Raw values meaning "sensor not fitted / not available"
+NOT_AVAILABLE = {
+    (1, False): (0xFF,), (2, False): (0xFFFF,), (4, False): (0xFFFFFFFF,),
+    (2, True): (0x7FFF, -0x8000), (4, True): (0x7FFFFFFF, -0x80000000),
+}
+
+
+def read_number(data: bytes, offset: int, size: int, divisor: int = 1, signed: bool = False):
+    """Read a little-endian integer field; None if the field is outside the packet or holds a
+    'not available' marker, otherwise the value scaled by divisor"""
+    if len(data) < offset + size:
+        return None
+    raw = int.from_bytes(data[offset:offset + size], "little", signed=signed)
+    if raw in NOT_AVAILABLE.get((size, signed), ()):
+        return None
+    if divisor == 1:
+        return raw
+    return round(raw / divisor, len(str(divisor)) - 1)
+
+
+def read_text(data: bytes, offset: int, size: int):
+    """Read an ASCII field padded with '-' or NUL; None if empty"""
+    text = data[offset:offset + size].decode("ascii", errors="ignore").strip("\x00- ")
+    return text or None
+
+
+def format_ip(data: bytes, offset: int):
+    if len(data) < offset + 4:
+        return "N/A"
+    return ".".join(str(b) for b in data[offset:offset + 4])
 
 
 def decode_device_datetime(raw: bytes) -> str:
@@ -156,353 +286,98 @@ def decode_telemetry(data: bytes) -> dict:
     
     # Packet header
     result["header"] = make_measurement(data[0:8].decode("ascii", errors="ignore"))
-    
+
     # Protocol version / packet type (offset 8-15)
     result["protocol_info"] = make_measurement(data[8:16].hex())
-    
-    # ModBus port (offset 18-19, big-endian)
-    result["modbus_port"] = make_measurement(int.from_bytes(data[18:20], "big"))
-    
+
+    # Fixed-layout fields from the Rainbow Plus template structure/DK0ED500.json
+    # (BusAdr = offset = API param id, size = BusCnt + 1, little-endian)
+    for key, (offset, size, divisor, signed, unit) in TEMPLATE_FIELDS.items():
+        result[key] = make_measurement(read_number(data, offset, size, divisor, signed), unit)
+
+    # Device type (offset 9-10): high byte is the model family, 0xD5 -> D500
+    if len(data) >= 11:
+        result["device_type"] = make_measurement(f"D{data[10] & 0x0F}00")
+
     # UniqueID (offset 21-32, hex string)
     result["unique_id"] = make_measurement(data[21:33].hex().upper())
-    
-    # LAN IP (offset 37-40)
-    result["lan_ip"] = make_measurement(".".join(str(b) for b in data[37:41]))
-    
-    # WAN IP address (offset 598-601, if available)
-    # wan_ip (id 33) — старый/альтернативный параметр, смещение 33-36
-    result["wan_ip"] = make_measurement((".".join(str(b) for b in data[33:37]), data, 37, "N/A"), "")
-    # wan_ip_2 (id 598) — основной параметр, смещение 598-601
-    result["wan_ip_2"] = make_measurement((".".join(str(b) for b in data[598:602]), data, 602, "N/A"), "")
-    
+
+    # IP addresses (4 bytes each)
+    result["wan_ip"] = make_measurement(format_ip(data, 33), "")
+    result["lan_ip"] = make_measurement(format_ip(data, 37))
+    result["gsm_ip"] = make_measurement(format_ip(data, 41), "")
+    # wan_ip_2 (offset 598-601) overlaps Fuel Consump(ECU) in the template; kept for compatibility
+    result["wan_ip_2"] = make_measurement(format_ip(data, 598), "")
+
+    # GPS coordinates (offset 45-52, signed 4 bytes each, scaled by 1000000)
+    result["latitude"] = make_measurement(read_number(data, 45, 4, 1_000_000, True), "")
+    result["longitude"] = make_measurement(read_number(data, 49, 4, 1_000_000, True), "")
+
+    # Text fields padded with '-' (offset 57-77 site id, 78-98 engine serial)
+    result["site_id"] = make_measurement(read_text(data, 57, 21), "")
+    result["engine_serial"] = make_measurement(read_text(data, 78, 21), "")
+    result["generator_name"] = make_measurement(read_text(data, 57, 21))
+
     # Controller date/time (offset 99-102): DOS-style packed little-endian 32-bit value,
     # year counted from 2000. Controller clock, not the server's.
     result["device_date"] = make_measurement(decode_device_datetime(data[99:103]), "")
-    
-    # Generator name (offset 56-87)
-    result["generator_name"] = make_measurement(data[56:88].decode("ascii", errors="ignore").strip('\x00- '))
-    
-    # GPS coordinates (offset 45-52, 4 bytes each, scaled by 1000000)
-    result["latitude"] = make_measurement((round(int.from_bytes(data[45:49], "little") / 1000000, 6), data, 53, "N/A"), "")
-    result["longitude"] = make_measurement((round(int.from_bytes(data[49:53], "little") / 1000000, 6), data, 53, "N/A"), "")
-    
+
     # Mode (offset 103)
     mode_code = data[103]
     result["mode"] = make_measurement(mode_code)
     result["mode_name"] = make_measurement(MODE_NAMES.get(mode_code, f"Unknown ({mode_code})"))
-    
+
     # State (offset 105)
     state_code = data[105]
     result["state"] = make_measurement(state_code)
     result["state_name"] = make_measurement(STATE_NAMES.get(state_code, f"Unknown ({state_code})"))
-    
-    # MAC Address (offset 592-597, if packet is long enough)
+
+    # MAC Address (offset 592-597)
     result["mac_address"] = make_measurement((data[592:598].hex().upper(), data, 598, "N/A"), "")
-    
-    # Runtime counter (offset 99-100) - minutes of current session
-    runtime_raw = int.from_bytes(data[99:101], "little")
-    result["runtime_counter_minutes"] = make_measurement(runtime_raw, "minutes")
-    result["runtime_hours"] = make_measurement(round(runtime_raw / 60, 2), "hour")
-    
-    # Genset voltages (offset 181, 185, 189) - scaled by 10
-    result["genset_L1_V"] = make_measurement(round(int.from_bytes(data[181:183], "little") / 10, 1), "V")
-    result["genset_L2_V"] = make_measurement(round(int.from_bytes(data[185:187], "little") / 10, 1), "V")
-    result["genset_L3_V"] = make_measurement(round(int.from_bytes(data[189:191], "little") / 10, 1), "V")
-    
-    # Genset currents (offset 193, 197, 201) - scaled by 10
-    result["genset_I1_A"] = make_measurement(round(int.from_bytes(data[193:195], "little") / 10, 1), "A")
-    result["genset_I2_A"] = make_measurement(round(int.from_bytes(data[197:199], "little") / 10, 1), "A")
-    result["genset_I3_A"] = make_measurement(round(int.from_bytes(data[201:203], "little") / 10, 1), "A")
-    
-    # Line-to-line voltages (offset 205, 209, 213) - scaled by 10
-    result["genset_L1_L2_V"] = make_measurement(round(int.from_bytes(data[205:207], "little") / 10, 1), "V")
-    result["genset_L2_L3_V"] = make_measurement(round(int.from_bytes(data[209:211], "little") / 10, 1), "V")
-    result["genset_L3_L1_V"] = make_measurement(round(int.from_bytes(data[213:215], "little") / 10, 1), "V")
-    
-    # Active Power (offset 217) - kW, scaled by 10
-    result["genset_P_total_kW"] = make_measurement(round(int.from_bytes(data[217:219], "little") / 10, 1), "kW")
-    
-    # Apparent Power (offset 225) - kVA, scaled by 10
-    result["genset_S_total_kVA"] = make_measurement(round(int.from_bytes(data[225:227], "little") / 10, 1), "kVA")
-    
-    # Frequency (offset 231) - Hz, scaled by 100
-    result["genset_freq_Hz"] = make_measurement(round(int.from_bytes(data[231:233], "little") / 100, 2), "Hz")
-    
-    # Mains voltages (offset 125, 129, 133) - scaled by 10
-    result["mains_L1_V"] = make_measurement((round(int.from_bytes(data[125:127], "little") / 10, 1), data, 136, "N/A"), "V")
-    result["mains_L2_V"] = make_measurement((round(int.from_bytes(data[129:131], "little") / 10, 1), data, 136, "N/A"), "V")
-    result["mains_L3_V"] = make_measurement((round(int.from_bytes(data[133:135], "little") / 10, 1), data, 136, "N/A"), "V")
-    
-    # Mains currents (offset 137, 141, 145) - scaled by 10
-    result["mains_I1_A"] = make_measurement((round(int.from_bytes(data[137:139], "little") / 10, 1), data, 148, "N/A"), "A")
-    result["mains_I2_A"] = make_measurement((round(int.from_bytes(data[141:143], "little") / 10, 1), data, 148, "N/A"), "A")
-    result["mains_I3_A"] = make_measurement((round(int.from_bytes(data[145:147], "little") / 10, 1), data, 148, "N/A"), "A")
-    
-    # Mains line-to-line voltages (offset 149, 153, 157) - scaled by 10
-    result["mains_L1_L2_V"] = make_measurement((round(int.from_bytes(data[149:151], "little") / 10, 1), data, 160, "N/A"), "V")
-    result["mains_L2_L3_V"] = make_measurement((round(int.from_bytes(data[153:155], "little") / 10, 1), data, 160, "N/A"), "V")
-    result["mains_L3_L1_V"] = make_measurement((round(int.from_bytes(data[157:159], "little") / 10, 1), data, 160, "N/A"), "V")
-    
-    # Mains power (offset 161, 165, 169) - scaled by 10
-    result["mains_P_total_kW"] = make_measurement((round(int.from_bytes(data[161:163], "little") / 10, 1), data, 172, "N/A"), "kW")
-    result["mains_Q_total_kVAr"] = make_measurement((round(int.from_bytes(data[165:167], "little") / 10, 1), data, 172, "N/A"), "kVAr")
-    result["mains_S_total_kVA"] = make_measurement((round(int.from_bytes(data[169:171], "little") / 10, 1), data, 172, "N/A"), "kVA")
-    
-    # Mains frequency (offset 175) - Hz, scaled by 100
-    result["mains_freq_Hz"] = make_measurement((round(int.from_bytes(data[175:177], "little") / 100, 2), data, 178, "N/A"), "Hz")
-    
-    # Engine RPM (offset 237)
-    result["engine_rpm"] = make_measurement(int.from_bytes(data[237:239], "little"), "RPM")
-    
-    # Battery voltage (offset 239) - V, scaled by 100
-    result["battery_voltage_Vdc"] = make_measurement(round(int.from_bytes(data[239:241], "little") / 100, 2), "Vdc")
-    
-    # Charge voltage (offset 241) - V, scaled by 100
-    result["charge_voltage"] = make_measurement((round(int.from_bytes(data[241:243], "little") / 100, 2), data, 244, "N/A"), "Vdc")
-    
-    # Oil pressure (offset 243) - bar, scaled by 10
-    result["oil_pressure_bar"] = make_measurement(round(int.from_bytes(data[243:245], "little") / 10, 1), "Bar")
-    
-    # Coolant temperature (offset 245) - Celsius, scaled by 10
-    result["coolant_temp_C"] = make_measurement(round(int.from_bytes(data[245:247], "little") / 10, 1), "'C")
-    
-    # Fuel level (offset 247) - percent, scaled by 10
-    result["fuel_level_percent"] = make_measurement(round(int.from_bytes(data[247:249], "little") / 10, 1), "%")
 
-    # Информационные координаты (offset 10002, 10003) — по 4 байта, little-endian, делить на 1_000_000
-    if len(data) > 10006:
-        lat_raw = int.from_bytes(data[10002:10006], "little")
-        result["latitude"] = make_measurement(round(lat_raw / 1_000_000, 6), "")
-    if len(data) > 10010:
-        lon_raw = int.from_bytes(data[10006:10010], "little")
-        result["longitude"] = make_measurement(round(lon_raw / 1_000_000, 6), "")
+    # Fuel (offset 585): tank capacity in liters; current liters derived from fuel level percent
+    tank_capacity = read_number(data, 585, 2, 1, False)
+    fuel_level = result["fuel_level_percent"]["value"]
+    if isinstance(tank_capacity, int) and isinstance(fuel_level, (int, float)):
+        result["fuel_tank_capacity_liters"] = make_measurement(tank_capacity, "lt.")
+        result["fuel_status_liters"] = make_measurement(round(tank_capacity * fuel_level / 100.0, 1), "lt.")
+    else:
+        result["fuel_status_liters"] = make_measurement(tank_capacity, "lt.")
 
-    # Oil temperature (offset 249) - Celsius, scaled by 10
-    oil_temp_raw = int.from_bytes(data[249:251], "little")
-    oil_temp = round(oil_temp_raw / 10, 1)
-    if oil_temp in (3276.7, 32767.0, 32767):
-        oil_temp = None
-    result["oil_temp"] = make_measurement((oil_temp, data, 252, "N/A"), "'C")
 
-    # Canopy temperature (offset 251) - Celsius, scaled by 10
-    canopy_temp_raw = int.from_bytes(data[251:253], "little")
-    canopy_temp = round(canopy_temp_raw / 10, 1)
-    if canopy_temp in (3276.7, 32767.0, 32767):
-        canopy_temp = None
-    result["canopy_temp"] = make_measurement((canopy_temp, data, 254, "N/A"), "'C")
-    
-    # Alerts structure (offset 258-500)
-    # SENDER slots: 8 slots × 19 bytes each (258-407)
-    # Each slot has: 16 bytes name + 3 bytes flags
-    # Flags structure (from DK_Serbian.c):
-    #   [0]: Status/count (varies)
-    #   [1]: Message indicator (0x01=has message, 0x03=configured, 0x7F=inactive)
-    #   [2]: Category (ASCII char: '3'=warning, '4'=notUsed, '5'=shutDown, '6'=loadDump)
-    # After SENDER slots come alert messages (starting ~413)
-    # Messages appear in order of SENDER slots with flag[1]=0x01
-    
+    # Analog sender slots (offset 255 + 19*i, template TipTag 11): int16 value /10,
+    # 1 byte sender type, 16 bytes name ("    SENDER-1    "). 0x7FFF = not fitted.
+    for i, key in enumerate(SENDER_KEYS):
+        offset = 255 + i * 19
+        if len(data) < offset + 19:
+            break
+        sender_type = data[offset + 2]
+        result[key] = make_measurement(read_number(data, offset, 2, 10, True), SENDER_UNITS.get(sender_type, ""))
+
+    # Active alarm texts (template AlarmHead=407, AlarmSize=96): '|'-separated sections,
+    # messages inside a section are NUL-terminated ASCII strings.
     alerts = {
         "shutDown": [],
         "warning": [],
         "loadDump": []
     }
-    
-    # Parse SENDER slots to find active slots with messages
-    active_slots = []
-    for i in range(8):
-        offset = 258 + (i * 19)
-        if offset + 19 <= len(data):
-            slot_name = data[offset:offset+16].decode('ascii', errors='ignore').strip()
-            flags = data[offset+16:offset+19]
-            
-            if not slot_name.startswith("SENDER"):
+    sections = data[ALARM_HEAD:ALARM_HEAD + ALARM_SIZE].split(b"|")[1:]
+    for section_idx, section in enumerate(sections):
+        for raw_msg in section.split(b"\x00"):
+            message = raw_msg.decode("ascii", errors="ignore").strip()
+            if not message:
                 continue
-            
-            flag0, flag1, flag2 = flags[0], flags[1], flags[2]
-            
-            # Check if this slot has an active message (use bitmask to be robust)
-            has_message = (flag1 & SENDER_FLAG_HAS_MESSAGE) == SENDER_FLAG_HAS_MESSAGE
-            
-            if has_message:
-                active_slots.append(i)  # Just store slot number for now
-    
-    # Parse messages after SENDER slots
-    # Messages start at offset 413 and occupy the region before statistics
-    # They are pipe '|' separated; read the whole region and split into parts
-    message_start = 413
-    message_end = min(len(data), 503)  # stop before statistics area
-    raw_msgs = data[message_start:message_end]
-
-    try:
-        decoded_msgs = raw_msgs.decode('ascii', errors='ignore')
-    except Exception:
-        decoded_msgs = ''
-
-    parts = [p.strip() for p in decoded_msgs.split('|') if p.strip()]
-    messages = []
-    for part in parts:
-        part_clean = part.replace('\x00', '').strip()
-        if len(part_clean) > 0:
-            messages.append(part_clean)
-    
-    # Now match messages to categories based on alarm indices
-    for idx, slot_num in enumerate(active_slots):
-        if idx < len(messages):
-            message = messages[idx]
             alarm_index = get_alarm_index_by_message(message)
             if alarm_index != -1:
-                category = get_alert_category_by_index(alarm_index)
-                if category in alerts:
-                    alerts[category].append(alarm_index)
+                alerts[get_alert_category_by_index(alarm_index)].append(alarm_index)
             else:
-                # Fallback: use flag2 from the slot
-                slot_offset = 258 + (slot_num * 19)
-                if slot_offset + 19 <= len(data):
-                    flags = data[slot_offset+16:slot_offset+19]
-                    flag2 = flags[2]
-                    category = get_alert_category(flag2)
-                    if category in alerts and category != ALERT_CATEGORY_NOT_USED:
-                        alerts[category].append(message)  # fallback to message
-    
+                # Unknown text: assume section order shutdown | loaddump | warning (not yet verified
+                # on a live alarm); keep the raw text so it is still reported
+                category = ALARM_SECTION_ORDER[min(section_idx, len(ALARM_SECTION_ORDER) - 1)]
+                alerts[category].append(message)
+
     # Store alerts separately (not in telemetry result)
     result["_alerts_internal"] = alerts
-    
-    # Genset statistics (offset 503-549)
-    if len(data) > 504:
-        result["genset_starts_count"] = make_measurement(int.from_bytes(data[503:505], "little"), "")
-    
-    if len(data) > 510:
-        result["reactive_energy_inductive"] = make_measurement(round(int.from_bytes(data[507:511], "little") / 10, 1), "kVArh")
-    
-    # Engine run hours total (offset 511) - hours, scaled by 100
-    if len(data) > 512:
-        result["engine_run_hours_total"] = make_measurement(round(int.from_bytes(data[511:513], "little") / 100, 2), "hour")
-    
-    # Service intervals (offset 515-536)
-    if len(data) > 516:
-        result["hours_to_service_1"] = make_measurement(round(int.from_bytes(data[515:517], "little") / 100, 2), "hour")
-    
-    if len(data) > 522:
-        result["days_to_service_1"] = make_measurement(round(int.from_bytes(data[519:523], "little") / 100, 2), "day")
-    
-    if len(data) > 524:
-        result["hours_to_service_2"] = make_measurement(round(int.from_bytes(data[523:525], "little") / 100, 2), "hour")
-    
-    if len(data) > 528:
-        result["days_to_service_2"] = make_measurement(round(int.from_bytes(data[527:531], "little") / 100, 2), "day")
-    
-    if len(data) > 532:
-        result["hours_to_service_3"] = make_measurement(round(int.from_bytes(data[531:533], "little") / 100, 2), "hour")
-    
-    if len(data) > 536:
-        result["days_to_service_3"] = make_measurement(round(int.from_bytes(data[535:539], "little") / 100, 2), "day")
-    
-    # Total energy produced (offset 539) - kWh, scaled by 10
-    if len(data) > 542:
-        result["total_kWh"] = make_measurement(round(int.from_bytes(data[539:543], "little") / 10, 1), "kWh")
-    
-    # Genset cranks count (offset 543)
-    if len(data) > 544:
-        result["genset_cranks_count"] = make_measurement(int.from_bytes(data[543:545], "little"), "")
-    
-    # Reactive energy capacitive (offset 547)
-    if len(data) > 548:
-        result["reactive_energy_capacitive"] = make_measurement(round(int.from_bytes(data[547:549], "little") / 10, 1), "kVArh")
-    
-    # Engine power rate (offset 553) - percent
-    if len(data) > 554:
-        result["engine_power_rate_percent"] = make_measurement(int.from_bytes(data[553:555], "little"), "%")
-    
-    # Battery voltage 2 (offset 555) - V, scaled by 100
-    if len(data) > 557:
-        result["battery_voltage_2_Vdc"] = make_measurement(round(int.from_bytes(data[555:557], "little") / 100, 2), "Vdc")
-    
-    # Mains energy counters (offset 561-576)
-    if len(data) > 565:
-        result["mains_total_kWh"] = make_measurement(round(int.from_bytes(data[561:565], "little") / 10, 1), "kWh")
-    
-    if len(data) > 569:
-        result["mains_total_kVArh_ind"] = make_measurement(round(int.from_bytes(data[565:569], "little") / 10, 1), "kVArh")
-    
-    if len(data) > 573:
-        result["mains_total_kVArh_cap"] = make_measurement(round(int.from_bytes(data[569:573], "little") / 10, 1), "kVArh")
-    
-    if len(data) > 577:
-        result["mains_total_export_kWh"] = make_measurement(round(int.from_bytes(data[573:577], "little") / 10, 1), "kWh")
-    
-    # Fuel consumption FlowMeter (offset 577) - liters, scaled by 10
-    if len(data) > 581:
-        result["fuel_consumption_flowm"] = make_measurement(round(int.from_bytes(data[577:581], "little") / 10, 1), "lt.")
-    
-    # Fuel status (offset 585) - liters
-    # NOTE: this field overlaps older/uncertain offsets; read as 2 bytes to avoid
-    # colliding with the separate `fuel_percent` 2-byte field at 587-588.
-    if len(data) > 587:
-        # bytes at 585:587 hold tank capacity (liters). compute current liters
-        tank_capacity = int.from_bytes(data[585:587], "little")
-        result["fuel_tank_capacity_liters"] = make_measurement(tank_capacity, "lt.")
-        # compute current fuel liters using fuel level percent if available
-        flp = None
-        if isinstance(result.get("fuel_level_percent"), dict):
-            flp = result.get("fuel_level_percent").get("value")
-        if flp is not None:
-            try:
-                current_liters = round(tank_capacity * (float(flp) / 100.0), 1)
-            except Exception:
-                current_liters = None
-        else:
-            current_liters = None
-        # Preserve legacy key `fuel_status_liters` as the current liters for API compatibility
-        result["fuel_status_liters"] = make_measurement(current_liters if current_liters is not None else tank_capacity, "lt.")
-
-    # Fuel percent (offset 587) - percent (2 bytes)
-    if len(data) > 589:
-        result["fuel_percent"] = make_measurement(int.from_bytes(data[587:589], "little"), "%")
-    
-    # GPS satellites (offset 589)
-    if len(data) > 590:
-        result["satellites"] = make_measurement(int.from_bytes(data[589:590], "little"), "")
-    
-    # Fuel consumption ECU (offset 598) - liters, scaled by 10
-    if len(data) > 602:
-        result["fuel_consumption_ecu"] = make_measurement(round(int.from_bytes(data[598:602], "little") / 10, 1), "lt.")
-    
-    # Battery group parameters (offset 602-610)
-    if len(data) > 604:
-        result["min_battery_voltage"] = make_measurement(round(int.from_bytes(data[602:604], "little") / 100, 2), "Vdc")
-    
-    if len(data) > 606:
-        result["battery_group_voltage"] = make_measurement(round(int.from_bytes(data[604:606], "little") / 100, 2), "Vdc")
-    
-    if len(data) > 608:
-        result["battery_group_current"] = make_measurement(round(int.from_bytes(data[606:608], "little") / 10, 1), "A")
-    
-    if len(data) > 612:
-        result["discharge_current_counter"] = make_measurement(int.from_bytes(data[608:612], "little"), "")
-    
-    # Fuel rate FlowMeter (offset 612) - l/h, scaled by 10
-    if len(data) > 614:
-        result["fuel_rate_flowm"] = make_measurement(round(int.from_bytes(data[612:614], "little") / 10, 1), "lt./h")
-    
-    # Fuel rate ECU (offset 614) - l/h, scaled by 10
-    if len(data) > 616:
-        result["fuel_rate_ecu"] = make_measurement(round(int.from_bytes(data[614:616], "little") / 10, 1), "lt./h")
-    
-    # DC alternator and battery (offset 616-625)
-    if len(data) > 618:
-        result["alternator_voltage"] = make_measurement(round(int.from_bytes(data[616:618], "little") / 100, 2), "Vdc")
-    
-    if len(data) > 620:
-        result["load_battery_voltage"] = make_measurement(round(int.from_bytes(data[618:620], "little") / 100, 2), "Vdc")
-    
-    if len(data) > 622:
-        result["dc_actual_current"] = make_measurement(round(int.from_bytes(data[620:622], "little") / 10, 1), "A")
-    
-    if len(data) > 624:
-        result["dc_battery_temp"] = make_measurement(round(int.from_bytes(data[622:624], "little") / 10, 1), "'C")
-    
-    if len(data) > 626:
-        result["dc_charge_state"] = make_measurement(int.from_bytes(data[624:626], "little"), "")
     
     return result
 
@@ -615,7 +490,7 @@ def format_telemetry(decoded: dict) -> str:
     lines.append(f"Mode: {decoded['mode']['value']} ({decoded['mode_name']['value']})")
     lines.append(f"State: {decoded['state']['value']} ({decoded['state_name']['value']})")
     
-    lines.append(f"Session Runtime: {decoded['runtime_hours']['value']} {decoded['runtime_hours']['unit']} ({decoded['runtime_counter_minutes']['value']} {decoded['runtime_counter_minutes']['unit']})")
+    lines.append(f"Device Date: {decoded['device_date']['value']}")
     
     if "engine_run_hours_total" in decoded:
         lines.append(f"Total Engine Hours: {decoded['engine_run_hours_total']['value']} {decoded['engine_run_hours_total']['unit']}")

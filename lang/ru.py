@@ -203,7 +203,8 @@ PARAM_TITLES = {
     "Genset Total kWh": "Общая энергия кВт·ч",
     "Genset Total kVArh (Ind)": "Общая реактивная энергия (инд)",
     "Genset Total kVArh (Cap)": "Общая реактивная энергия (емк)",
-    "Genset Engine Pwr Rate": "Мощность двигателя %",
+    "Genset Engine Pwr Rate": "Номинальная мощность двигателя",
+    "Engine Hours to Go": "Часов до работы",
     
     # Mains
     "Mains L1": "Сеть L1",
