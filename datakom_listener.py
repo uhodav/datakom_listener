@@ -280,6 +280,7 @@ def handle_connection(conn: socket.socket, addr):
                 with send_lock:
                     conn.sendall(packet[:8])
                 handle_packet(packet)
+            link.flush_queued(conn)
             update_health(packet=True)
             data = conn.recv(4096)
 

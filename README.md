@@ -122,8 +122,8 @@ Where to enter the key / Де вказати ключ:
 - Home Assistant integration → settings → "Control key"; without it control buttons are not created. / Інтеграція Home Assistant → налаштування → «Ключ керування»; без нього кнопки керування не створюються.
 - Any HTTP client: header `X-API-Key: <key>`. See [README_API.md](README_API.md#post-apidevicecontrol). / Будь-який HTTP-клієнт: заголовок `X-API-Key: <ключ>`.
 
-After a listener restart the controller needs ~1-2 minutes to reconnect; until then commands return `Controller is not connected`.
-Після перезапуску listener контролеру потрібно ~1-2 хвилини, щоб перепідключитися; до того команди повертають `Controller is not connected`.
+If the controller is offline (e.g. ~1-2 minutes after a listener restart), the command is queued and sent as soon as it reconnects: the API waits up to 20 s and then answers HTTP 202 `queued`. Only the newest command is kept; it expires after `DATAKOM_CONTROL_QUEUE_SECONDS` (default 120 s).
+Якщо контролер офлайн (наприклад, ~1-2 хвилини після перезапуску listener), команда ставиться в чергу і надсилається, щойно він підключиться: API чекає до 20 с, потім відповідає HTTP 202 `queued`. Зберігається лише остання команда; вона діє `DATAKOM_CONTROL_QUEUE_SECONDS` (за замовчуванням 120 с).
 
 ## Features / Особливості
 

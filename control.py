@@ -10,7 +10,10 @@ import json
 import socket
 import struct
 import threading
+import time
 from datetime import datetime
+
+from config import CONTROL_QUEUE_SECONDS
 
 MBUS_HEADER = b"DKV0MBUS"
 CONTROL_REGISTER = 0x2011
@@ -29,6 +32,7 @@ COMMAND_CODES = {
 }
 
 CONFIRM_TIMEOUT = 10  # seconds to wait for the controller echo
+CONTROL_QUEUE_WAIT = 20  # seconds the API request waits for an offline controller before answering "queued"
 
 # All writes to Datakom connections go through this lock so a command frame never interleaves
 # with a packet acknowledgement sent by the connection handler thread
@@ -56,6 +60,7 @@ class ControllerLink:
         self._conn = None
         self._addr = None
         self._pending = None  # (value, threading.Event, result dict)
+        self._queued = None   # (action, value, threading.Event, result dict, expires_at)
 
     def attach(self, conn, addr):
         with self._lock:
@@ -81,6 +86,7 @@ class ControllerLink:
         if fc == FC_WRITE_REGISTER and len(frame) >= 20:
             register, value = struct.unpack(">HH", frame[16:20])
             if pending and register == CONTROL_REGISTER and value == pending[0]:
+                print(f"[CMD] Command 0x{value:02X} confirmed by controller")
                 pending[2].update(success=True)
                 pending[1].set()
                 return
@@ -93,35 +99,74 @@ class ControllerLink:
         else:
             print(f"[CMD] Unexpected Modbus frame from controller: {frame.hex()}")
 
+    def flush_queued(self, conn):
+        """Called by the connection handler after each packet: send a command queued while the
+        controller was offline. Does not wait for the confirmation (on_frame handles it)."""
+        with self._lock:
+            queued = self._queued
+            if queued is None or self._conn is not conn:
+                return
+            self._queued = None
+            action, value, event, result, expires_at = queued
+            if time.time() > expires_at:
+                print(f"[CMD] Queued {action.upper()} expired, not sent")
+                result.update(success=False, error="Queued command expired before the controller connected")
+                event.set()
+                return
+            self._pending = (value, event, result)
+        try:
+            with send_lock:
+                conn.sendall(build_write_frame(value))
+            print(f"[CMD] Sent queued {action.upper()} (0x{value:02X}) to {self._addr}")
+        except OSError as e:
+            result.update(success=False, error=f"Send failed: {e}")
+            event.set()
+
     def execute(self, action: str) -> dict:
-        """Send a command and wait for the controller echo. Commands are serialized."""
+        """Send a command and wait for the controller echo. Commands are serialized.
+        While the controller is offline the command is queued (newest wins) for CONTROL_QUEUE_SECONDS."""
         value = COMMAND_CODES.get(action)
         if value is None:
             return {"success": False, "error": f"Unknown action: {action}"}
 
         with self._command_lock:
+            event, result = threading.Event(), {}
             with self._lock:
                 conn, addr = self._conn, self._addr
                 if conn is None:
-                    return {"success": False, "error": "Controller is not connected"}
-                event, result = threading.Event(), {}
-                self._pending = (value, event, result)
+                    if self._queued:
+                        self._queued[3].update(success=False, error="Replaced by a newer command")
+                        self._queued[2].set()
+                    expires_at = time.time() + CONTROL_QUEUE_SECONDS
+                    self._queued = (action, value, event, result, expires_at)
+                    print(f"[CMD] Controller offline, {action.upper()} queued for {CONTROL_QUEUE_SECONDS}s")
+                else:
+                    self._pending = (value, event, result)
             try:
-                with send_lock:
-                    conn.sendall(build_write_frame(value))
-                print(f"[CMD] Sent {action.upper()} (0x{value:02X}) to {addr}")
-                if not event.wait(CONFIRM_TIMEOUT):
-                    print(f"[CMD] No confirmation for {action.upper()} within {CONFIRM_TIMEOUT}s")
-                    return {"success": False, "error": f"No confirmation from controller within {CONFIRM_TIMEOUT}s"}
+                if conn is not None:
+                    with send_lock:
+                        conn.sendall(build_write_frame(value))
+                    print(f"[CMD] Sent {action.upper()} (0x{value:02X}) to {addr}")
+                    wait = CONFIRM_TIMEOUT
+                else:
+                    wait = CONTROL_QUEUE_WAIT
+                if not event.wait(wait):
+                    with self._lock:
+                        still_queued = self._queued is not None and self._queued[2] is event
+                    if still_queued:
+                        return {"success": True, "queued": True, "action": action,
+                                "expires_at": datetime.fromtimestamp(expires_at).isoformat()}
+                    print(f"[CMD] No confirmation for {action.upper()} within {wait}s")
+                    return {"success": False, "error": f"No confirmation from controller within {wait}s"}
                 if result.get("success"):
-                    print(f"[CMD] {action.upper()} confirmed by controller")
                     return {"success": True, "action": action, "confirmed_at": datetime.now().isoformat()}
                 return {"success": False, "error": result.get("error", "Command failed")}
             except OSError as e:
                 return {"success": False, "error": f"Send failed: {e}"}
             finally:
                 with self._lock:
-                    self._pending = None
+                    if self._pending is not None and self._pending[1] is event:
+                        self._pending = None
 
 
 link = ControllerLink()
@@ -143,7 +188,7 @@ def _handle_control_client(client: socket.socket):
     try:
         client.settimeout(5)
         request = json.loads(client.recv(1024).decode("utf-8"))
-        client.settimeout(CONFIRM_TIMEOUT + 5)
+        client.settimeout(max(CONFIRM_TIMEOUT, CONTROL_QUEUE_WAIT) + 5)
         action = str(request.get("action", "")).lower()
         print(f"[CMD] Request {action.upper()} from {request.get('source', 'unknown')}")
         response = link.execute(action)

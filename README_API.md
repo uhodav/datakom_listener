@@ -239,7 +239,7 @@ Requires header `X-API-Key` — our own service key from `data/control_key` (or 
 **Body / Тіло:** `{"action": "stop" | "auto" | "manual" | "test"}`
 
 ```bash
-curl -X POST "https://bierdeckel.com.ua/datakom/api/device/control" \
+curl -X POST "https://example.com/datakom/api/device/control" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: <key>" \
   -d '{"action": "auto"}'
@@ -251,6 +251,7 @@ The request returns after the controller confirms the command (up to 10 s). The 
 | HTTP | Response / Відповідь |
 |---|---|
 | 200 | `{"success": true, "action": "auto", "confirmed_at": "..."}` |
+| 202 | `{"success": true, "queued": true, "expires_at": "..."}` — controller offline, the command is sent when it reconnects (newest command wins, expires after `DATAKOM_CONTROL_QUEUE_SECONDS`, default 120 s) / контролер офлайн, команда буде надіслана при підключенні |
 | 400 | Action not allowed / Дія не дозволена (`allowed` lists permitted actions) |
 | 401 | Invalid or missing X-API-Key |
 | 403 | Control is disabled: no control key configured |

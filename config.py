@@ -21,6 +21,8 @@ TELEMETRY_STALE_SECONDS = int(os.environ.get('DATAKOM_STALE_SECONDS', 300))
 # Remote control: the listener accepts commands from the API on a local-only port
 CONTROL_HOST = "127.0.0.1"
 CONTROL_PORT = 8761
+# Command sent while the controller is offline waits this long for it to reconnect
+CONTROL_QUEUE_SECONDS = int(os.environ.get('DATAKOM_CONTROL_QUEUE_SECONDS', 120))
 # Actions the API may send (genset/mains = load transfer, disabled by default)
 CONTROL_ACTIONS = [a.strip() for a in os.environ.get('DATAKOM_CONTROL_ACTIONS', 'stop,auto,manual,test').split(',') if a.strip()]
 # API key for control requests: env DATAKOM_CONTROL_KEY or file data/control_key.

@@ -233,7 +233,7 @@ async def get_health():
 def send_to_listener(action: str, source: str) -> dict:
     """Forward a control action to the listener's local control port and wait for its result"""
     try:
-        with socket.create_connection((CONTROL_HOST, CONTROL_PORT), timeout=20) as sock:
+        with socket.create_connection((CONTROL_HOST, CONTROL_PORT), timeout=40) as sock:
             sock.sendall(json.dumps({"action": action, "source": source}).encode("utf-8"))
             response = b""
             while not response.endswith(b"\n"):
@@ -267,7 +267,8 @@ def device_control(
     source = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for") or request.client.host
     print(f"[CMD] {action.upper()} requested from {source}")
     result = send_to_listener(action, source)
-    return JSONResponse(result, status_code=200 if result.get("success") else 502)
+    status_code = (202 if result.get("queued") else 200) if result.get("success") else 502
+    return JSONResponse(result, status_code=status_code)
 
 
 @app.get("/api/dump_devm")
