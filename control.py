@@ -70,6 +70,10 @@ class ControllerLink:
         """Called by the connection handler for every DKV0MBUS frame received from the controller"""
         with self._lock:
             pending = self._pending
+        if frame == MBUS_HEADER:
+            # Bare 8-byte header: the controller sends it to every server it is connected to when it
+            # receives a command (ours or the Datakom portal's) - a notification, nothing to match
+            return
         if len(frame) < 17:
             print(f"[CMD] Short Modbus frame from controller: {frame.hex()}")
             return

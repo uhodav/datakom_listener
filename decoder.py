@@ -14,9 +14,6 @@ from datakom_constants import (
 # (MulIdx 0 -> x1, 6 -> /10, 9 -> /100, 10 -> /1000). Keys are referenced by param_mapping.py.
 TEMPLATE_FIELDS = {
     # Information
-    "connection": (8, 1, 1, False, ""),
-    "sw_version": (11, 2, 1, False, ""),
-    "hw_version": (13, 2, 1, False, ""),
     "modbus_addr": (18, 1, 1, False, ""),
     "modbus_port": (19, 2, 1, False, ""),
     # Mains
@@ -80,8 +77,6 @@ TEMPLATE_FIELDS = {
     "mains_total_kVArh_cap": (569, 4, 10, True, "kVArh"),
     "mains_total_export_kWh": (573, 4, 10, True, "kWh"),
     "fuel_consumption_flowm": (577, 4, 1000, True, "lt."),
-    "information": (581, 2, 1, False, ""),
-    "hours_to_go": (587, 2, 10, False, "hour"),
     "satellites": (589, 1, 1, False, ""),
     "mac_reset": (590, 2, 1, False, ""),
     "fuel_consumption_ecu": (598, 4, 1, False, "lt."),
@@ -126,6 +121,23 @@ def read_number(data: bytes, offset: int, size: int, divisor: int = 1, signed: b
     if divisor == 1:
         return raw
     return round(raw / divisor, len(str(divisor)) - 1)
+
+
+SERVICE_COUNTER_KEYS = [
+    "hours_to_service_1", "days_to_service_1",
+    "hours_to_service_2", "days_to_service_2",
+    "hours_to_service_3", "days_to_service_3",
+]
+
+# Enum texts as shown by the official Datakom portal (only observed values are known)
+CONNECTION_TYPES = {0: "LAN"}
+INFORMATION_FLAGS = {0: "Fuel:Burn,Fuel:lt,Position:GPS"}
+
+
+def format_version(raw: int) -> str:
+    """Version word as the portal shows it: hex digits with a dot before the last one (0x0243 -> 24.3)"""
+    digits = f"{raw:x}".rjust(2, "0")
+    return f"{digits[:-1]}.{digits[-1]}"
 
 
 def read_text(data: bytes, offset: int, size: int):
@@ -295,9 +307,23 @@ def decode_telemetry(data: bytes) -> dict:
     for key, (offset, size, divisor, signed, unit) in TEMPLATE_FIELDS.items():
         result[key] = make_measurement(read_number(data, offset, size, divisor, signed), unit)
 
-    # Device type (offset 9-10): high byte is the model family, 0xD5 -> D500
-    if len(data) >= 11:
-        result["device_type"] = make_measurement(f"D{data[10] & 0x0F}00")
+    # Service counters: the official Datakom portal shows negative values as N/A (service not set)
+    for key in SERVICE_COUNTER_KEYS:
+        value = result[key]["value"]
+        if isinstance(value, (int, float)) and value < 0:
+            result[key]["value"] = None
+
+    # Device info, formatted like the official Datakom portal
+    if len(data) >= 15:
+        # Device type (offset 9-10) as hex: 0xD502 -> "d502"
+        result["device_type"] = make_measurement(f"{int.from_bytes(data[9:11], 'little'):x}")
+        # Versions (offset 11-12, 13-14): hex digits with a dot before the last one, 0x0243 -> "24.3"
+        result["sw_version"] = make_measurement(format_version(int.from_bytes(data[11:13], "little")))
+        result["hw_version"] = make_measurement(format_version(int.from_bytes(data[13:15], "little")))
+    connection = data[8] if len(data) > 8 else None
+    result["connection"] = make_measurement(CONNECTION_TYPES.get(connection, connection), "")
+    information = read_number(data, 581, 2, 1, False)
+    result["information"] = make_measurement(INFORMATION_FLAGS.get(information, information), "")
 
     # UniqueID (offset 21-32, hex string)
     result["unique_id"] = make_measurement(data[21:33].hex().upper())
@@ -343,6 +369,19 @@ def decode_telemetry(data: bytes) -> dict:
         result["fuel_status_liters"] = make_measurement(round(tank_capacity * fuel_level / 100.0, 1), "lt.")
     else:
         result["fuel_status_liters"] = make_measurement(tank_capacity, "lt.")
+
+    # Hours To Go (template Extras GSK_H2G) is computed by Datakom software, not sent by the controller.
+    # Offset 587 holds the full-load fuel rate (l/h); scaling it by apparent power / rated power
+    # reproduces the portal value (222 lt, 27.7 kVA, 35 l/h, 100 kW -> 22.9 h vs 22.7 on the portal).
+    full_load_rate = read_number(data, 587, 2, 1, False)
+    liters = result["fuel_status_liters"]["value"]
+    apparent_power = result["genset_S_total_kVA"]["value"]
+    rated_power = result["engine_power_rate_percent"]["value"]
+    hours_to_go = None
+    if all(isinstance(v, (int, float)) and v > 0 for v in (full_load_rate, liters, apparent_power, rated_power)):
+        hours_to_go = round(liters / (full_load_rate * apparent_power / rated_power), 1)
+    result["full_load_fuel_rate"] = make_measurement(full_load_rate, "lt./h")
+    result["hours_to_go"] = make_measurement(hours_to_go, "hour")
 
 
     # Analog sender slots (offset 255 + 19*i, template TipTag 11): int16 value /10,
