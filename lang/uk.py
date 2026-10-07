@@ -286,6 +286,7 @@ PARAM_TITLES = {
     "Information MAC-Rst": "MAC скидання",
     "Information MAC-Adr": "MAC адреса",
     "Information Panel LEDs": "Світлодіоди панелі",
+    "Information Panel LED Status": "Стан світлодіодів панелі",
     "Information": "Інформація",
     "Information Min Battery Voltage": "Мінімальна напруга акумулятора",
     "Information Battery Group Voltage": "Напруга групи акумуляторів",

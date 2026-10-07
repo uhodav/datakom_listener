@@ -363,6 +363,10 @@ def decode_telemetry(data: bytes) -> dict:
 
     # Panel LED states (offset 112-119): 2 bits per LED - 00 off, 01 on, 10 quick flash, 11 slow flash
     result["panel_leds"] = make_measurement((data[112:120].hex().upper(), data, 120, "N/A"), "")
+    # Same LED block in the Datakom portal layout (offset 117-124, bit index as in portal DK_bit_obtain):
+    # 0 GCB, 2 MCB, 12 AUTO READY, 14 GENSET, 16 TEST, 18 MAN/RUN, 20 AUTO, 22 STOP, 24 MAINS.
+    # Value 1/2 = LED lit yellow/green
+    result["panel_led_status"] = make_measurement((data[117:125].hex().upper(), data, 125, "N/A"), "")
 
     # Fuel (offset 585): tank capacity in liters; current liters derived from fuel level percent
     tank_capacity = read_number(data, 585, 2, 1, False)
