@@ -177,12 +177,12 @@ last_led_block = None
 
 
 def log_led_change(data: bytes):
-    """Log the panel LED block (offset 112-119, 2 bits per LED) whenever it changes"""
+    """Log the panel LED block (offset 112-127, 2 bits per LED) whenever it changes"""
     global last_led_block
-    if len(data) < 120 or data[112:120] == last_led_block:
+    if len(data) < 128 or data[112:128] == last_led_block:
         return
-    last_led_block = data[112:120]
-    print(f"[LED] 112-119: {last_led_block.hex(' ')} mode={data[103]} state={data[105]}")
+    last_led_block = data[112:128]
+    print(f"[LED] 112-127: {last_led_block.hex(' ')} mode={data[103]} state={data[105]}")
 
 
 def process_telemetry(data: bytes):
