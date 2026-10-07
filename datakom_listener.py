@@ -173,6 +173,18 @@ def save_event(data: bytes):
     cleanup_old_packets(DIR_EVENT, 10)
 
 
+last_led_block = None
+
+
+def log_led_change(data: bytes):
+    """Log the panel LED block (offset 112-119, 2 bits per LED) whenever it changes"""
+    global last_led_block
+    if len(data) < 120 or data[112:120] == last_led_block:
+        return
+    last_led_block = data[112:120]
+    print(f"[LED] 112-119: {last_led_block.hex(' ')} mode={data[103]} state={data[105]}")
+
+
 def process_telemetry(data: bytes):
     """Decode a telemetry packet and store telemetry/alerts/unknown offsets JSON"""
     path = save_packet(DIR_TELEMETRY, data)
@@ -180,6 +192,7 @@ def process_telemetry(data: bytes):
     now = datetime.now().isoformat()
 
     decoded = decode_telemetry(data)
+    log_led_change(data)
     alerts = decoded.pop("_alerts_internal", {"shutDown": [], "warning": [], "loadDump": []})
     decoded["timestamp"] = now
     decoded["raw_packet_file"] = os.path.basename(path)

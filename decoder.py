@@ -361,6 +361,9 @@ def decode_telemetry(data: bytes) -> dict:
     # MAC Address (offset 592-597)
     result["mac_address"] = make_measurement((data[592:598].hex().upper(), data, 598, "N/A"), "")
 
+    # Panel LED states (offset 112-119): 2 bits per LED - 00 off, 01 on, 10 quick flash, 11 slow flash
+    result["panel_leds"] = make_measurement((data[112:120].hex().upper(), data, 120, "N/A"), "")
+
     # Fuel (offset 585): tank capacity in liters; current liters derived from fuel level percent
     tank_capacity = read_number(data, 585, 2, 1, False)
     fuel_level = result["fuel_level_percent"]["value"]
