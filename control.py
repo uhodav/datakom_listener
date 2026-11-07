@@ -66,6 +66,18 @@ class ControllerLink:
         with self._lock:
             self._conn, self._addr = conn, addr
 
+    def ensure_attached(self, conn, addr) -> bool:
+        """Called for every packet: the connection that is actually delivering data is the live one.
+        The controller can hold an older connection while a newer one drops ("Connection reset by peer");
+        without this the link stays detached and commands wait in the queue forever.
+        Returns True when the link was switched to this connection."""
+        with self._lock:
+            if self._conn is conn:
+                return False
+            self._conn, self._addr = conn, addr
+        print(f"[CMD] Live controller connection {addr} re-attached for commands")
+        return True
+
     def detach(self, conn):
         with self._lock:
             if self._conn is conn:

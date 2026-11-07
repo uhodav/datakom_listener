@@ -123,7 +123,9 @@ Where to enter the key / Де вказати ключ:
 - Any HTTP client: header `X-API-Key: <key>`. See [README_API.md](README_API.md#post-apidevicecontrol). / Будь-який HTTP-клієнт: заголовок `X-API-Key: <ключ>`.
 
 If the controller is offline (e.g. ~1-2 minutes after a listener restart), the command is queued and sent as soon as it reconnects: the API waits up to 20 s and then answers HTTP 202 `queued`. Only the newest command is kept; it expires after `DATAKOM_CONTROL_QUEUE_SECONDS` (default 120 s).
+Commands go through the connection that is actually delivering data: if the controller holds two connections and one of them drops, the live one takes over at its next packet (log `[CMD] Live controller connection ... re-attached`).
 Якщо контролер офлайн (наприклад, ~1-2 хвилини після перезапуску listener), команда ставиться в чергу і надсилається, щойно він підключиться: API чекає до 20 с, потім відповідає HTTP 202 `queued`. Зберігається лише остання команда; вона діє `DATAKOM_CONTROL_QUEUE_SECONDS` (за замовчуванням 120 с).
+Команди йдуть через зʼєднання, яким реально надходять дані: якщо контролер тримає два зʼєднання і одне з них обірвалося, живе підхоплює команди з наступним пакетом (лог `[CMD] Live controller connection ... re-attached`).
 
 ## Features / Особливості
 

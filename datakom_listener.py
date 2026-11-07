@@ -293,6 +293,10 @@ def handle_connection(conn: socket.socket, addr):
                 with send_lock:
                     conn.sendall(packet[:8])
                 handle_packet(packet)
+            # Data from this connection proves it is alive: it carries the commands (and connect_state)
+            # even if a newer parallel connection from the controller has dropped
+            if link.ensure_attached(conn, addr):
+                update_health("Connected")
             link.flush_queued(conn)
             update_health(packet=True)
             data = conn.recv(4096)
