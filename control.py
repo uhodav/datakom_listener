@@ -39,9 +39,9 @@ CONTROL_QUEUE_WAIT = 20  # seconds the API request waits for an offline controll
 send_lock = threading.Lock()
 
 
-def build_write_frame(value: int) -> bytes:
+def build_write_frame(value: int, register: int = CONTROL_REGISTER) -> bytes:
     return MBUS_HEADER + struct.pack(">HHHBBHH", TRANSACTION_ID, 0, 6, UNIT_ID,
-                                     FC_WRITE_REGISTER, CONTROL_REGISTER, value)
+                                     FC_WRITE_REGISTER, register, value)
 
 
 def mbus_frame_length(data: bytes):
@@ -59,8 +59,8 @@ class ControllerLink:
         self._command_lock = threading.Lock()
         self._conn = None
         self._addr = None
-        self._pending = None  # (value, threading.Event, result dict)
-        self._queued = None   # (action, value, threading.Event, result dict, expires_at)
+        self._pending = None  # (register, value, threading.Event, result dict)
+        self._queued = None   # (action, register, value, threading.Event, result dict, expires_at)
 
     def attach(self, conn, addr):
         with self._lock:
@@ -97,17 +97,17 @@ class ControllerLink:
         fc = frame[15]
         if fc == FC_WRITE_REGISTER and len(frame) >= 20:
             register, value = struct.unpack(">HH", frame[16:20])
-            if pending and register == CONTROL_REGISTER and value == pending[0]:
-                print(f"[CMD] Command 0x{value:02X} confirmed by controller")
-                pending[2].update(success=True)
-                pending[1].set()
+            if pending and register == pending[0] and value == pending[1]:
+                print(f"[CMD] Command 0x{value:02X} (register 0x{register:04X}) confirmed by controller")
+                pending[3].update(success=True)
+                pending[2].set()
                 return
             print(f"[CMD] Unexpected confirmation: register 0x{register:04X} value 0x{value:04X}")
         elif fc == FC_WRITE_REGISTER | 0x80:
             print(f"[CMD] Controller rejected command, Modbus exception {frame[16]}")
             if pending:
-                pending[2].update(success=False, error=f"Controller rejected command (Modbus exception {frame[16]})")
-                pending[1].set()
+                pending[3].update(success=False, error=f"Controller rejected command (Modbus exception {frame[16]})")
+                pending[2].set()
         else:
             print(f"[CMD] Unexpected Modbus frame from controller: {frame.hex()}")
 
@@ -119,26 +119,28 @@ class ControllerLink:
             if queued is None or self._conn is not conn:
                 return
             self._queued = None
-            action, value, event, result, expires_at = queued
+            action, register, value, event, result, expires_at = queued
             if time.time() > expires_at:
                 print(f"[CMD] Queued {action.upper()} expired, not sent")
                 result.update(success=False, error="Queued command expired before the controller connected")
                 event.set()
                 return
-            self._pending = (value, event, result)
+            self._pending = (register, value, event, result)
         try:
             with send_lock:
-                conn.sendall(build_write_frame(value))
+                conn.sendall(build_write_frame(value, register))
             print(f"[CMD] Sent queued {action.upper()} (0x{value:02X}) to {self._addr}")
         except OSError as e:
             result.update(success=False, error=f"Send failed: {e}")
             event.set()
 
-    def execute(self, action: str) -> dict:
+    def execute(self, action: str, register: int = CONTROL_REGISTER, value: int = None) -> dict:
         """Send a command and wait for the controller echo. Commands are serialized.
-        While the controller is offline the command is queued (newest wins) for CONTROL_QUEUE_SECONDS."""
-        value = COMMAND_CODES.get(action)
-        if value is None:
+        While the controller is offline the command is queued (newest wins) for CONTROL_QUEUE_SECONDS.
+        action "raw" writes the given value to the given register (local control port only, for testing)."""
+        if action != "raw":
+            register, value = CONTROL_REGISTER, COMMAND_CODES.get(action)
+        if value is None or not (0 <= value <= 0xFFFF and 0 <= register <= 0xFFFF):
             return {"success": False, "error": f"Unknown action: {action}"}
 
         with self._command_lock:
@@ -147,24 +149,24 @@ class ControllerLink:
                 conn, addr = self._conn, self._addr
                 if conn is None:
                     if self._queued:
-                        self._queued[3].update(success=False, error="Replaced by a newer command")
-                        self._queued[2].set()
+                        self._queued[4].update(success=False, error="Replaced by a newer command")
+                        self._queued[3].set()
                     expires_at = time.time() + CONTROL_QUEUE_SECONDS
-                    self._queued = (action, value, event, result, expires_at)
+                    self._queued = (action, register, value, event, result, expires_at)
                     print(f"[CMD] Controller offline, {action.upper()} queued for {CONTROL_QUEUE_SECONDS}s")
                 else:
-                    self._pending = (value, event, result)
+                    self._pending = (register, value, event, result)
             try:
                 if conn is not None:
                     with send_lock:
-                        conn.sendall(build_write_frame(value))
-                    print(f"[CMD] Sent {action.upper()} (0x{value:02X}) to {addr}")
+                        conn.sendall(build_write_frame(value, register))
+                    print(f"[CMD] Sent {action.upper()} (0x{value:02X} to register 0x{register:04X}) to {addr}")
                     wait = CONFIRM_TIMEOUT
                 else:
                     wait = CONTROL_QUEUE_WAIT
                 if not event.wait(wait):
                     with self._lock:
-                        still_queued = self._queued is not None and self._queued[2] is event
+                        still_queued = self._queued is not None and self._queued[3] is event
                     if still_queued:
                         return {"success": True, "queued": True, "action": action,
                                 "expires_at": datetime.fromtimestamp(expires_at).isoformat()}
@@ -177,7 +179,7 @@ class ControllerLink:
                 return {"success": False, "error": f"Send failed: {e}"}
             finally:
                 with self._lock:
-                    if self._pending is not None and self._pending[1] is event:
+                    if self._pending is not None and self._pending[2] is event:
                         self._pending = None
 
 
@@ -203,7 +205,10 @@ def _handle_control_client(client: socket.socket):
         client.settimeout(max(CONFIRM_TIMEOUT, CONTROL_QUEUE_WAIT) + 5)
         action = str(request.get("action", "")).lower()
         print(f"[CMD] Request {action.upper()} from {request.get('source', 'unknown')}")
-        response = link.execute(action)
+        if action == "raw":
+            response = link.execute(action, int(request.get("register", CONTROL_REGISTER)), int(request["value"]))
+        else:
+            response = link.execute(action)
     except Exception as e:
         response = {"success": False, "error": f"Bad control request: {e}"}
     try:

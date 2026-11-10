@@ -262,6 +262,14 @@ The request returns after the controller confirms the command (up to 10 s). The 
 Command mapping (register `0x2011`, Modbus write via `DKV0MBUS` frame): STOP=1, AUTO=2, MANUAL=4, TEST=8 (GENSET=0x10, MAINS=0x20 disabled by default). Telemetry mode values differ: STOP=1, MANUAL=2, AUTO=4, TEST=8.
 Відповідність команд (регістр `0x2011`, запис Modbus у кадрі `DKV0MBUS`): STOP=1, AUTO=2, MANUAL=4, TEST=8. Значення режиму в телеметрії інші: STOP=1, MANUAL=2, AUTO=4, TEST=8.
 
+Testing raw writes (local control port `127.0.0.1:8761` on the server only, not exposed by the API):
+Тест довільного запису (лише локальний порт `127.0.0.1:8761` на сервері, API його не пропускає):
+```bash
+python3 -c "import socket;s=socket.create_connection(('127.0.0.1',8761));s.sendall(b'{\"action\":\"raw\",\"register\":8193,\"value\":18,\"source\":\"test\"}');print(s.recv(4096).decode())"
+```
+Rainbow Plus (D-500 / D-500 MK2 panel) writes pushbuttons to register `8193` (`0x2001`): STOP=1, MAN=2, AUTO=4, TEST=8, RUN=18 (MAN+RUN bits), GCB=32, MCB=64, menu/arrow buttons 128-1024.
+Rainbow Plus (панель D-500 / D-500 MK2) пише кнопки в регістр `8193` (`0x2001`): STOP=1, MAN=2, AUTO=4, TEST=8, RUN=18 (біти MAN+RUN), GCB=32, MCB=64, кнопки меню/стрілок 128-1024.
+
 ## Monitoring / Моніторинг
 
 ### PM2 Logs / Логи PM2
