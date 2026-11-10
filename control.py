@@ -21,6 +21,9 @@ CONTROL_REGISTER = 0x2011
 TRANSACTION_ID = 0x1234
 UNIT_ID = 1
 FC_WRITE_REGISTER = 0x06
+FC_READ_REGISTERS = 0x03
+FC_WRITE_REGISTERS = 0x10
+MAX_READ_COUNT = 123  # Modbus limit per request (Rainbow Plus reads 64-word blocks)
 
 # Button bitmask written to CONTROL_REGISTER, verified against controller telemetry in the captures
 COMMAND_CODES = {
@@ -81,6 +84,17 @@ def build_write_frame(value: int, register: int = CONTROL_REGISTER) -> bytes:
                                      FC_WRITE_REGISTER, register, value)
 
 
+def build_read_frame(register: int, count: int) -> bytes:
+    return MBUS_HEADER + struct.pack(">HHHBBHH", TRANSACTION_ID, 0, 6, UNIT_ID,
+                                     FC_READ_REGISTERS, register, count)
+
+
+def build_write_multi_frame(register: int, values: list) -> bytes:
+    n = len(values)
+    return MBUS_HEADER + struct.pack(f">HHHBBHHB{n}H", TRANSACTION_ID, 0, 7 + 2 * n, UNIT_ID,
+                                     FC_WRITE_REGISTERS, register, n, 2 * n, *values)
+
+
 def mbus_frame_length(data: bytes):
     """Total length of a DKV0MBUS frame at the start of data, None if the header is incomplete"""
     if len(data) < 14:
@@ -98,6 +112,7 @@ class ControllerLink:
         self._addr = None
         self._pending = None  # (register, value, threading.Event, result dict)
         self._queued = None   # (action, register, value, threading.Event, result dict, expires_at)
+        self._pending_tx = None  # read / write-multiple: (function code, threading.Event, result dict)
 
     def attach(self, conn, addr):
         with self._lock:
@@ -124,6 +139,7 @@ class ControllerLink:
         """Called by the connection handler for every DKV0MBUS frame received from the controller"""
         with self._lock:
             pending = self._pending
+            pending_tx = self._pending_tx
         if frame == MBUS_HEADER:
             # Bare 8-byte header: the controller sends it to every server it is connected to when it
             # receives a command (ours or the Datakom portal's) - a notification, nothing to match
@@ -132,6 +148,18 @@ class ControllerLink:
             print(f"[CMD] Short Modbus frame from controller: {frame.hex()}")
             return
         fc = frame[15]
+        if pending_tx and fc in (pending_tx[0], pending_tx[0] | 0x80):
+            if fc & 0x80:
+                pending_tx[2].update(success=False, error=f"Controller rejected request (Modbus exception {frame[16]})")
+            elif fc == FC_READ_REGISTERS:
+                count = frame[16] // 2
+                pending_tx[2].update(success=True, values=list(struct.unpack_from(f">{count}H", frame, 17)))
+            else:
+                pending_tx[2].update(success=True, register=struct.unpack_from(">H", frame, 16)[0],
+                                     count=struct.unpack_from(">H", frame, 18)[0])
+            print(f"[CMD] Modbus function {fc & 0x7F} answered: {pending_tx[2]}")
+            pending_tx[1].set()
+            return
         if fc == FC_WRITE_REGISTER and len(frame) >= 20:
             register, value = struct.unpack(">HH", frame[16:20])
             if pending and register == pending[0] and value == pending[1]:
@@ -220,6 +248,44 @@ class ControllerLink:
                     if self._pending is not None and self._pending[2] is event:
                         self._pending = None
 
+    def transact(self, fc: int, frame: bytes, timeout: float = CONFIRM_TIMEOUT) -> dict:
+        """Send a read (03) or write-multiple (16) request and wait for the answer. Not queued:
+        the controller must be connected. Serialized with the pushbutton commands."""
+        with self._command_lock:
+            with self._lock:
+                conn, addr = self._conn, self._addr
+                if conn is None:
+                    return {"success": False, "error": "Controller is not connected"}
+                event, result = threading.Event(), {}
+                self._pending_tx = (fc, event, result)
+            try:
+                with send_lock:
+                    conn.sendall(frame)
+                print(f"[CMD] Sent Modbus function {fc} request {frame[8:].hex()} to {addr}")
+                if not event.wait(timeout):
+                    return {"success": False, "error": f"No answer from controller within {timeout}s"}
+                return result
+            except OSError as e:
+                return {"success": False, "error": f"Send failed: {e}"}
+            finally:
+                with self._lock:
+                    if self._pending_tx is not None and self._pending_tx[1] is event:
+                        self._pending_tx = None
+
+    def read_registers(self, register: int, count: int) -> dict:
+        if not (0 <= register <= 0xFFFF and 1 <= count <= MAX_READ_COUNT):
+            return {"success": False, "error": f"register 0..65535, count 1..{MAX_READ_COUNT}"}
+        result = self.transact(FC_READ_REGISTERS, build_read_frame(register, count))
+        if result.get("success"):
+            result = {**result, "register": register}
+        return result
+
+    def write_registers(self, register: int, values: list) -> dict:
+        if not (0 <= register <= 0xFFFF and 1 <= len(values) <= MAX_READ_COUNT - 2
+                and all(0 <= v <= 0xFFFF for v in values)):
+            return {"success": False, "error": "register 0..65535, 1..121 values 0..65535"}
+        return self.transact(FC_WRITE_REGISTERS, build_write_multi_frame(register, values))
+
 
 link = ControllerLink()
 
@@ -241,12 +307,19 @@ def _handle_control_client(client: socket.socket):
         client.settimeout(5)
         request = json.loads(client.recv(1024).decode("utf-8"))
         client.settimeout(max(CONFIRM_TIMEOUT, CONTROL_QUEUE_WAIT) + 5)
-        resolved = resolve_command(request)
-        print(f"[CMD] Request {str(request.get('action', '')).upper()} from {request.get('source', 'unknown')}")
-        if isinstance(resolved, str):
-            response = {"success": False, "error": resolved}
+        action = str(request.get("action", "")).lower()
+        print(f"[CMD] Request {action.upper()} from {request.get('source', 'unknown')}")
+        # Local control port only (not allowed by the API): read / write any registers, for testing
+        if action == "read":
+            response = link.read_registers(int(request["register"]), int(request.get("count", 1)))
+        elif action == "write_multi":
+            response = link.write_registers(int(request["register"]), [int(v) for v in request["values"]])
         else:
-            response = link.execute(*resolved)
+            resolved = resolve_command(request)
+            if isinstance(resolved, str):
+                response = {"success": False, "error": resolved}
+            else:
+                response = link.execute(*resolved)
     except Exception as e:
         response = {"success": False, "error": f"Bad control request: {e}"}
     try:
