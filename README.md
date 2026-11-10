@@ -96,12 +96,12 @@ DEFAULT_LANGUAGE = "uk"  # Default language: uk, en / Мова за замовч
 - `GET /api/dump_devm?id=IDs&language=LANG` - Get parameters / Отримати параметри
 - `GET /api/dump_devm_param_names?language=LANG` - Get parameter list / Отримати список параметрів
 - `GET /api/dump_devm_alarm` - Get alarms / Отримати аварії
-- `POST /api/device/control` - Controller pushbutton (STOP/AUTO/MANUAL/TEST), requires `X-API-Key` / Кнопка контролера, потрібен `X-API-Key`
+- `POST /api/device/control` - Controller pushbutton (STOP/AUTO/MANUAL/TEST/RUN), service 1 reset, user outputs, requires `X-API-Key` / Кнопка контролера, потрібен `X-API-Key`
 
 ## Remote Control / Дистанційне керування
 
-The API can simulate controller pushbuttons (STOP, AUTO, MANUAL, TEST). The command is sent to the controller over its own connection to the listener (port 8760); the controller echoes it back as confirmation.
-API може імітувати кнопки контролера (STOP, AUTO, MANUAL, TEST). Команда надсилається контролеру через його ж з'єднання з listener (порт 8760), контролер підтверджує її відповіддю.
+The API can simulate controller pushbuttons (STOP, AUTO, MANUAL, TEST, RUN), reset the Engine Service 1 counter and switch user outputs 1-16. The command is sent to the controller over its own connection to the listener (port 8760); the controller echoes it back as confirmation.
+API може імітувати кнопки контролера (STOP, AUTO, MANUAL, TEST, RUN), скидати лічильник ТО-1 і перемикати користувацькі виходи 1-16. Команда надсилається контролеру через його ж з'єднання з listener (порт 8760), контролер підтверджує її відповіддю.
 
 **Control key / Ключ керування.** Control requests require the `X-API-Key` header. This is our own key checked only by `api_server.py` — it is not a Datakom / Rainbow / SCADA password. One key for the whole service (not bound to a user). While no key is configured, control is disabled (HTTP 403).
 Запити керування потребують заголовка `X-API-Key`. Це наш власний ключ, його перевіряє лише `api_server.py` — це не пароль Datakom / Rainbow / SCADA. Один ключ на весь сервіс (не прив'язаний до користувача). Поки ключ не задано, керування вимкнено (HTTP 403).

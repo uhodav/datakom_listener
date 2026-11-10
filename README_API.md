@@ -236,7 +236,14 @@ Simulate a controller pushbutton / Імітувати кнопку контро�
 Requires header `X-API-Key` — our own service key from `data/control_key` (or env `DATAKOM_CONTROL_KEY`), not a Datakom/SCADA password. How to generate it: [README.md → Remote Control](README.md#remote-control--дистанційне-керування).
 Потрібен заголовок `X-API-Key` — власний ключ сервісу з `data/control_key` (або змінної `DATAKOM_CONTROL_KEY`), не пароль Datakom/SCADA. Як згенерувати: [README.md → Дистанційне керування](README.md#remote-control--дистанційне-керування).
 
-**Body / Тіло:** `{"action": "stop" | "auto" | "manual" | "test"}`
+**Body / Тіло:** `{"action": "stop" | "auto" | "manual" | "test" | "run" | "service1_reset"}` or / або `{"action": "output", "output": 1..16, "state": "on" | "off"}`
+
+| Action | Register / Регістр | Value / Значення | Meaning / Що робить |
+|---|---|---|---|
+| `stop` / `auto` / `manual` / `test` | `0x2011` | 1 / 2 / 4 / 8 | Mode buttons / Кнопки режиму |
+| `run` | `8193` (`0x2001`) | 18 | RUN button: starts the engine in manual mode / Кнопка RUN: пуск двигуна в ручному режимі |
+| `service1_reset` | `8196` (`0x2004`) | 8 | Reset Engine Service 1 hours and days counters / Скинути лічильники ТО-1 (години та дні) |
+| `output` | `8201` (`0x2009`) | N, N \| 0x8000 | Switch user output N on / off (write only) / Увімкнути / вимкнути користувацький вихід N (лише запис) |
 
 ```bash
 curl -X POST "https://example.com/datakom/api/device/control" \
@@ -258,6 +265,9 @@ The request returns after the controller confirms the command (up to 10 s). The 
 | 502 | `Controller is not connected` / `No confirmation from controller within 10s` / listener unavailable |
 
 `GET /api/health` also reports `control_enabled` and `control_actions`. / також повертає `control_enabled` і `control_actions`.
+
+Default `DATAKOM_CONTROL_ACTIONS`: `stop,auto,manual,test,run,service1_reset,output` (`genset`, `mains`, `raw` are not allowed by default; if the variable is set on the server, add the new actions to it).
+Типово `DATAKOM_CONTROL_ACTIONS`: `stop,auto,manual,test,run,service1_reset,output` (`genset`, `mains`, `raw` типово заборонені; якщо змінна задана на сервері, додайте в неї нові дії).
 
 Command mapping (register `0x2011`, Modbus write via `DKV0MBUS` frame): STOP=1, AUTO=2, MANUAL=4, TEST=8 (GENSET=0x10, MAINS=0x20 disabled by default). Telemetry mode values differ: STOP=1, MANUAL=2, AUTO=4, TEST=8.
 Відповідність команд (регістр `0x2011`, запис Modbus у кадрі `DKV0MBUS`): STOP=1, AUTO=2, MANUAL=4, TEST=8. Значення режиму в телеметрії інші: STOP=1, MANUAL=2, AUTO=4, TEST=8.

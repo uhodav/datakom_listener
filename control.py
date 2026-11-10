@@ -1,6 +1,7 @@
 """
 Remote control of the Datakom controller: pushbutton simulation via a Modbus "write single register"
-request sent over the controller's own telemetry connection.
+request sent over the controller's own telemetry connection (also run, service counter reset and
+user outputs, see REGISTER_COMMANDS / resolve_command).
 
 Frame format (recovered from Rainbow Plus captures in documentations/*.pcapng):
     b"DKV0MBUS" + MBAP(transaction 0x1234, protocol 0, length 6, unit 1) + PDU(06, 0x2011, value)
@@ -30,6 +31,42 @@ COMMAND_CODES = {
     "genset": 0x10,   # load transfer to genset
     "mains": 0x20,    # load transfer to mains
 }
+
+# Rainbow Plus (D-500 / D-500 MK2) writes front panel buttons to register 8193 and other commands to
+# their own registers (decompiled MainFrm_D500MK2: SendSimulateButton, ResetDevCounters, SetUserOutputs)
+PANEL_BUTTON_REGISTER = 8193   # STOP=1, MAN=2, AUTO=4, TEST=8, RUN=18 (MAN+RUN bits), GCB=32, MCB=64
+COUNTER_RESET_REGISTER = 8196  # bitmask: runs 1, cranks 2, service 1/2/3 = 8/16/32, kWh 64, all 511
+USER_OUTPUT_REGISTER = 8201    # output number 1..16, | 0x8000 switches it off
+USER_OUTPUTS = 16
+REGISTER_COMMANDS = {
+    "run": (PANEL_BUTTON_REGISTER, 18),
+    "service1_reset": (COUNTER_RESET_REGISTER, 8),
+}
+
+
+def resolve_command(request: dict):
+    """(action, register, value) for a control request, or an error string.
+    "output" needs "output" (1..16) and "state" ("on"/"off"); "raw" needs "register" and "value"."""
+    action = str(request.get("action", "")).lower()
+    if action in COMMAND_CODES:
+        return action, CONTROL_REGISTER, COMMAND_CODES[action]
+    if action in REGISTER_COMMANDS:
+        return (action, *REGISTER_COMMANDS[action])
+    try:
+        if action == "output":
+            output = int(request.get("output"))
+            state = str(request.get("state", "")).lower()
+            if not 1 <= output <= USER_OUTPUTS or state not in ("on", "off"):
+                return f"output must be 1..{USER_OUTPUTS} and state on/off"
+            return action, USER_OUTPUT_REGISTER, output | (0x8000 if state == "off" else 0)
+        if action == "raw":
+            register, value = int(request.get("register", CONTROL_REGISTER)), int(request["value"])
+            if 0 <= register <= 0xFFFF and 0 <= value <= 0xFFFF:
+                return action, register, value
+            return "register and value must be 0..65535"
+    except (TypeError, ValueError, KeyError) as e:
+        return f"Bad {action} request: {e}"
+    return f"Unknown action: {action}"
 
 CONFIRM_TIMEOUT = 10  # seconds to wait for the controller echo
 CONTROL_QUEUE_WAIT = 20  # seconds the API request waits for an offline controller before answering "queued"
@@ -134,14 +171,15 @@ class ControllerLink:
             result.update(success=False, error=f"Send failed: {e}")
             event.set()
 
-    def execute(self, action: str, register: int = CONTROL_REGISTER, value: int = None) -> dict:
+    def execute(self, action: str, register: int = None, value: int = None) -> dict:
         """Send a command and wait for the controller echo. Commands are serialized.
         While the controller is offline the command is queued (newest wins) for CONTROL_QUEUE_SECONDS.
-        action "raw" writes the given value to the given register (local control port only, for testing)."""
-        if action != "raw":
-            register, value = CONTROL_REGISTER, COMMAND_CODES.get(action)
-        if value is None or not (0 <= value <= 0xFFFF and 0 <= register <= 0xFFFF):
-            return {"success": False, "error": f"Unknown action: {action}"}
+        register/value default to the code of action (see resolve_command)."""
+        if value is None:
+            resolved = resolve_command({"action": action})
+            if isinstance(resolved, str):
+                return {"success": False, "error": resolved}
+            action, register, value = resolved
 
         with self._command_lock:
             event, result = threading.Event(), {}
@@ -203,12 +241,12 @@ def _handle_control_client(client: socket.socket):
         client.settimeout(5)
         request = json.loads(client.recv(1024).decode("utf-8"))
         client.settimeout(max(CONFIRM_TIMEOUT, CONTROL_QUEUE_WAIT) + 5)
-        action = str(request.get("action", "")).lower()
-        print(f"[CMD] Request {action.upper()} from {request.get('source', 'unknown')}")
-        if action == "raw":
-            response = link.execute(action, int(request.get("register", CONTROL_REGISTER)), int(request["value"]))
+        resolved = resolve_command(request)
+        print(f"[CMD] Request {str(request.get('action', '')).upper()} from {request.get('source', 'unknown')}")
+        if isinstance(resolved, str):
+            response = {"success": False, "error": resolved}
         else:
-            response = link.execute(action)
+            response = link.execute(*resolved)
     except Exception as e:
         response = {"success": False, "error": f"Bad control request: {e}"}
     try:

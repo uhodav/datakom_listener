@@ -230,11 +230,11 @@ async def get_health():
     return health
 
 
-def send_to_listener(action: str, source: str) -> dict:
+def send_to_listener(action: str, source: str, extra: Optional[dict] = None) -> dict:
     """Forward a control action to the listener's local control port and wait for its result"""
     try:
         with socket.create_connection((CONTROL_HOST, CONTROL_PORT), timeout=40) as sock:
-            sock.sendall(json.dumps({"action": action, "source": source}).encode("utf-8"))
+            sock.sendall(json.dumps({**(extra or {}), "action": action, "source": source}).encode("utf-8"))
             response = b""
             while not response.endswith(b"\n"):
                 chunk = sock.recv(4096)
@@ -252,7 +252,9 @@ def device_control(
     body: dict = Body(..., examples=[{"action": "stop"}]),
     x_api_key: Optional[str] = Header(None),
 ):
-    """Simulate a controller pushbutton (stop, auto, manual, test). Requires X-API-Key."""
+    """Simulate a controller pushbutton (stop, auto, manual, test, run), reset the service 1 counter
+    (service1_reset) or switch a user output ({"action": "output", "output": 1..16, "state": "on"/"off"}).
+    Requires X-API-Key."""
     key = get_control_key()
     if not key:
         return JSONResponse({"success": False, "error": "Control is disabled: no control key configured"}, status_code=403)
@@ -265,8 +267,9 @@ def device_control(
                              "allowed": CONTROL_ACTIONS}, status_code=400)
 
     source = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for") or request.client.host
-    print(f"[CMD] {action.upper()} requested from {source}")
-    result = send_to_listener(action, source)
+    extra = {"output": body.get("output"), "state": body.get("state")} if action == "output" else None
+    print(f"[CMD] {action.upper()} requested from {source}" + (f" {extra}" if extra else ""))
+    result = send_to_listener(action, source, extra)
     status_code = (202 if result.get("queued") else 200) if result.get("success") else 502
     return JSONResponse(result, status_code=status_code)
 
