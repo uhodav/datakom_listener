@@ -361,7 +361,8 @@ def decode_telemetry(data: bytes) -> dict:
     # MAC Address (offset 592-597)
     result["mac_address"] = make_measurement((data[592:598].hex().upper(), data, 598, "N/A"), "")
 
-    # Panel LED states (offset 112-119): 2 bits per LED - 00 off, 01 on, 10 quick flash, 11 slow flash
+    # Offset 112-119: digital output states (112 = outputs 1-8, 113-114 = 9-24, 115-116 = 25-40, LE bits;
+    # = Modbus 11164-11166) followed by the first panel LED bytes (117-119, see panel_led_status below)
     result["panel_leds"] = make_measurement((data[112:120].hex().upper(), data, 120, "N/A"), "")
     # Same LED block in the Datakom portal layout (offset 117-124, bit index as in portal DK_bit_obtain):
     # 0 GCB, 2 MCB, 12 AUTO READY, 14 GENSET, 16 TEST, 18 MAN/RUN, 20 AUTO, 22 STOP, 24 MAINS.

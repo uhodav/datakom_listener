@@ -178,7 +178,7 @@ last_led_block = None
 
 
 def log_led_change(data: bytes):
-    """Log the panel LED block (offset 112-127, 2 bits per LED) whenever it changes"""
+    """Log the block 112-127 whenever it changes: digital outputs (112-116) and panel LEDs (117-124)"""
     global last_led_block
     if len(data) < 128 or data[112:128] == last_led_block:
         return
@@ -194,6 +194,7 @@ def process_telemetry(data: bytes):
 
     decoded = decode_telemetry(data)
     log_led_change(data)
+    controller_io.update_states_from_packet(data)
     alerts = decoded.pop("_alerts_internal", {"shutDown": [], "warning": [], "loadDump": []})
     decoded["timestamp"] = now
     decoded["raw_packet_file"] = os.path.basename(path)

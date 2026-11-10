@@ -283,8 +283,8 @@ Rainbow Plus (панель D-500 / D-500 MK2) пише кнопки в регі�
 ### GET /api/device/io
 Controller outputs and weekly scheduler / Виходи контролера і тижневий графік
 
-The listener reads them over the controller connection (Modbus function 03) after telemetry packets: output states about once a minute, output functions and the scheduler every 10 min. They are not in the telemetry packet.
-Listener читає їх через з'єднання контролера (функція Modbus 03) після пакетів телеметрії: стан виходів приблизно раз на хвилину, функції виходів і графік - раз на 10 хв. У пакеті телеметрії їх немає.
+Output states come with every telemetry packet (bytes 112-116, the same bits as Modbus registers 11164-11166). Output functions and the scheduler are not in the packet: the listener reads them over the controller connection (Modbus function 03) every 10 min.
+Стан виходів приходить із кожним пакетом телеметрії (байти 112-116, ті самі біти, що й регістри Modbus 11164-11166). Функцій виходів і графіка в пакеті немає: listener читає їх через з'єднання контролера (функція Modbus 03) раз на 10 хв.
 
 ```json
 {"success": true, "timestamp": "...", "age_seconds": 20,

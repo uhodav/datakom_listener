@@ -9,10 +9,12 @@ computes it).
   day Monday..Sunday, bit h = hour h (0..15 in the first word, 16..23 in the second): the hours when
   AUTO mode may run the genset.
 - Block 640..767 (I/O): output functions 686..725 = outputs 1..40 (index into output_functions.json).
-- Output state: 11164..11166 = outputs 1-8 (bits 0-7), 9-24, 25-40 (not in the telemetry packet).
+- Output state: registers 11164..11166 = outputs 1-8 (bits 0-7), 9-24, 25-40. The telemetry packet carries
+  the same bits at offsets 112 (outputs 1-8) and 113-116 (9-40, little endian) - verified 10.11.2026:
+  registers 0x0040 0x0404 0x4040 = packet 40 04 04 40 40.
 
-After every telemetry packet the listener refreshes data/controller_io.json in a background thread
-(states every IO_POLL_SECONDS, functions and scheduler every IO_CONFIG_POLL_SECONDS).
+Output states are updated from every telemetry packet (update_states_from_packet). Output functions and
+the scheduler are read with Modbus requests in a background thread every IO_CONFIG_POLL_SECONDS.
 """
 import json
 import os
@@ -41,12 +43,11 @@ READ_UNLOCK_REGISTER = 10615
 PASSWORD_REGISTER = 8192
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
-IO_POLL_SECONDS = 55
 IO_CONFIG_POLL_SECONDS = 600
+PACKET_OUTPUTS_OFFSET = 112  # 5 bytes: outputs 1-8, 9-24 (2 bytes LE), 25-40 (2 bytes LE)
 
 _lock = threading.Lock()          # one poll / scheduler write at a time
 _poll_running = threading.Event()
-_last_poll = 0.0
 _last_config_poll = 0.0
 _functions = None
 
@@ -105,37 +106,59 @@ def _read(register: int, count: int) -> list:
     return result["values"]
 
 
+def _apply_states(data: dict, bits: int, raw, source: str):
+    for o in data.get("outputs") or []:
+        o["state"] = bool(bits >> (o["output"] - 1) & 1)
+    data["output_state_raw"] = raw
+    data["output_state_source"] = source
+    data["timestamp"] = datetime.now().isoformat()
+
+
+def update_states_from_packet(packet: bytes):
+    """Output states from a telemetry packet (bytes 112-116), saved with the last read functions."""
+    if len(packet) < PACKET_OUTPUTS_OFFSET + 5:
+        return
+    raw = packet[PACKET_OUTPUTS_OFFSET:PACKET_OUTPUTS_OFFSET + 5]
+    bits = raw[0] | int.from_bytes(raw[1:3], "little") << 8 | int.from_bytes(raw[3:5], "little") << 24
+    # Called from the connection handler thread: never wait for _lock - a poll or a scheduler write holding
+    # it waits for controller answers that only this thread delivers. Busy -> skip (the poll saves states).
+    if not _lock.acquire(blocking=False):
+        return
+    try:
+        data = _load()
+        if not data.get("outputs"):
+            return  # functions not read yet: the first poll writes the states too
+        _apply_states(data, bits, raw.hex(" "), "telemetry")
+        _save(data)
+    finally:
+        _lock.release()
+
+
 def poll(force_config: bool = False) -> dict:
-    """Read output states (and functions + scheduler when due) and update data/controller_io.json."""
-    global _last_poll, _last_config_poll
+    """Read output functions, the scheduler and output states (Modbus) into data/controller_io.json."""
+    global _last_config_poll
     with _lock:
         data = _load()
-        now = time.time()
         states = _read(OUTPUT_STATE_REGISTER, 3)
         bits = (states[0] & 0xFF) | (states[1] << 8) | (states[2] << 24)
-        if force_config or now - _last_config_poll >= IO_CONFIG_POLL_SECONDS or "outputs" not in data:
-            functions = _read(OUTPUT_FUNCTION_REGISTER, OUTPUTS)
-            data["outputs"] = [
-                {"output": n + 1, "function_index": f, "function": output_function_name(f)}
-                for n, f in enumerate(functions)
-            ]
-            data["schedule"] = schedule_from_words(_read(SCHEDULE_REGISTER, SCHEDULE_WORDS))
-            data["config_timestamp"] = datetime.now().isoformat()
-            _last_config_poll = now
-        for o in data["outputs"]:
-            o["state"] = bool(bits >> (o["output"] - 1) & 1)
-        data["output_state_raw"] = states
-        data["timestamp"] = datetime.now().isoformat()
+        functions = _read(OUTPUT_FUNCTION_REGISTER, OUTPUTS)
+        data["outputs"] = [
+            {"output": n + 1, "function_index": f, "function": output_function_name(f)}
+            for n, f in enumerate(functions)
+        ]
+        data["schedule"] = schedule_from_words(_read(SCHEDULE_REGISTER, SCHEDULE_WORDS))
+        data["config_timestamp"] = datetime.now().isoformat()
+        _apply_states(data, bits, states, "modbus")
         data.pop("error", None)
         _save(data)
-        _last_poll = now
+        _last_config_poll = time.time()
         return data
 
 
 def poll_after_packet():
-    """Called by the connection handler after each telemetry packet: refresh in the background
-    (the handler thread must keep reading - it delivers the controller's answers)."""
-    if _poll_running.is_set() or time.time() - _last_poll < IO_POLL_SECONDS:
+    """Called by the connection handler after each telemetry packet: read functions and the scheduler
+    in the background when due (the handler thread must keep reading - it delivers the answers)."""
+    if _poll_running.is_set() or time.time() - _last_config_poll < IO_CONFIG_POLL_SECONDS:
         return
 
     def run():
@@ -143,6 +166,8 @@ def poll_after_packet():
             poll()
         except Exception as e:
             print(f"[IO] Poll failed: {e}")
+            global _last_config_poll
+            _last_config_poll = time.time() - IO_CONFIG_POLL_SECONDS + 60  # retry in a minute
             data = _load()
             data["error"] = str(e)
             data["error_at"] = datetime.now().isoformat()

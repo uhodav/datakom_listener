@@ -285,7 +285,7 @@ PARAM_TITLES = {
     "Information Connection": "Connection",
     "Information MAC-Rst": "MAC Reset",
     "Information MAC-Adr": "MAC Address",
-    "Information Panel LEDs": "Panel LEDs",
+    "Information Panel LEDs": "Digital outputs / LEDs",
     "Information Panel LED Status": "Panel LED Status",
     "Information": "Information",
     "Information Min Battery Voltage": "Minimum Battery Voltage",

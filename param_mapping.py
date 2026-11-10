@@ -140,7 +140,7 @@ PARAM_MAPPING = {
     # Information - Network Addresses
     "mac_reset": (590, "Information MAC-Rst"),
     "mac_address": (592, "Information MAC-Adr"),
-    "panel_leds": (112, "Information Panel LEDs"),
+    "panel_leds": (112, "Information Panel LEDs"),  # bytes 112-116 = digital outputs, 117-119 = LEDs
     "panel_led_status": (117, "Information Panel LED Status"),
     "information": (581, "Information"),
     
