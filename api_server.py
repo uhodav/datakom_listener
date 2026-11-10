@@ -25,6 +25,7 @@ DATA_DIR = Path("data")
 TELEMETRY_JSON = DATA_DIR / "telemetry.json"
 ALERTS_JSON = DATA_DIR / "alerts.json"
 HEALTH_JSON = DATA_DIR / "health.json"
+IO_JSON = DATA_DIR / "controller_io.json"
 
 
 @asynccontextmanager
@@ -230,10 +231,10 @@ async def get_health():
     return health
 
 
-def send_to_listener(action: str, source: str, extra: Optional[dict] = None) -> dict:
+def send_to_listener(action: str, source: str, extra: Optional[dict] = None, timeout: int = 40) -> dict:
     """Forward a control action to the listener's local control port and wait for its result"""
     try:
-        with socket.create_connection((CONTROL_HOST, CONTROL_PORT), timeout=40) as sock:
+        with socket.create_connection((CONTROL_HOST, CONTROL_PORT), timeout=timeout) as sock:
             sock.sendall(json.dumps({**(extra or {}), "action": action, "source": source}).encode("utf-8"))
             response = b""
             while not response.endswith(b"\n"):
@@ -272,6 +273,53 @@ def device_control(
     result = send_to_listener(action, source, extra)
     status_code = (202 if result.get("queued") else 200) if result.get("success") else 502
     return JSONResponse(result, status_code=status_code)
+
+
+def check_control_key(x_api_key: Optional[str]):
+    """None when the key is valid, otherwise the error response"""
+    key = get_control_key()
+    if not key:
+        return JSONResponse({"success": False, "error": "Control is disabled: no control key configured"}, status_code=403)
+    if not x_api_key or not hmac.compare_digest(x_api_key, key):
+        return JSONResponse({"success": False, "error": "Invalid or missing X-API-Key"}, status_code=401)
+    return None
+
+
+@app.get("/api/device/io")
+def device_io():
+    """Controller outputs (function and state of outputs 1..40) and the weekly scheduler (hours per day
+    when AUTO mode may run the genset), read by the listener over the controller connection about once
+    a minute (functions and scheduler every 10 min)."""
+    data = load_json(IO_JSON, {})
+    if not data:
+        return {"success": False, "error": "No controller I/O data yet"}
+    age = None
+    try:
+        age = int((datetime.now() - datetime.fromisoformat(data["timestamp"])).total_seconds())
+    except (KeyError, ValueError):
+        pass
+    return {"success": True, **data, "age_seconds": age}
+
+
+@app.post("/api/device/schedule")
+def device_schedule(
+    request: Request,
+    body: dict = Body(..., examples=[{"schedule": {"mon": list(range(6, 24))}}]),
+    x_api_key: Optional[str] = Header(None),
+):
+    """Write the weekly scheduler: {"schedule": {"mon": [6, 7, ..., 23], ...}} (any subset of days,
+    hours 0..23 when AUTO mode may run the genset). Requires X-API-Key. The listener reads the whole
+    configuration block, changes only the scheduler, writes it back and verifies by reading it again."""
+    error = check_control_key(x_api_key)
+    if error:
+        return error
+    schedule = body.get("schedule")
+    if not isinstance(schedule, dict) or not schedule:
+        return JSONResponse({"success": False, "error": "schedule must be {day: [hours]}"}, status_code=400)
+    source = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for") or request.client.host
+    print(f"[CMD] SCHEDULE requested from {source}: {schedule}")
+    result = send_to_listener("schedule_set", source, {"schedule": schedule}, timeout=120)
+    return JSONResponse(result, status_code=200 if result.get("success") else 502)
 
 
 @app.get("/api/dump_devm")

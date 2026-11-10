@@ -280,6 +280,28 @@ python3 -c "import socket;s=socket.create_connection(('127.0.0.1',8761));s.senda
 Rainbow Plus (D-500 / D-500 MK2 panel) writes pushbuttons to register `8193` (`0x2001`): STOP=1, MAN=2, AUTO=4, TEST=8, RUN=18 (MAN+RUN bits), GCB=32, MCB=64, menu/arrow buttons 128-1024.
 Rainbow Plus (панель D-500 / D-500 MK2) пише кнопки в регістр `8193` (`0x2001`): STOP=1, MAN=2, AUTO=4, TEST=8, RUN=18 (біти MAN+RUN), GCB=32, MCB=64, кнопки меню/стрілок 128-1024.
 
+### GET /api/device/io
+Controller outputs and weekly scheduler / Виходи контролера і тижневий графік
+
+The listener reads them over the controller connection (Modbus function 03) after telemetry packets: output states about once a minute, output functions and the scheduler every 10 min. They are not in the telemetry packet.
+Listener читає їх через з'єднання контролера (функція Modbus 03) після пакетів телеметрії: стан виходів приблизно раз на хвилину, функції виходів і графік - раз на 10 хв. У пакеті телеметрії їх немає.
+
+```json
+{"success": true, "timestamp": "...", "age_seconds": 20,
+ "outputs": [{"output": 1, "function_index": 2, "function": "Crank", "state": false}, ...],
+ "schedule": {"mon": [6, 7, 8, ..., 23], "tue": [...], ...}}
+```
+`outputs`: 1-8 on the controller, 9-40 on extension modules (Rainbow Plus "Ext. Outputs"). Function names: `output_functions.json` (Rainbow Plus list; "Remote Control Out N" = user output N of `/device/control`). `schedule`: hours 0-23 per day when AUTO mode may run the genset (Rainbow Plus Scheduler).
+`outputs`: 1-8 на контролері, 9-40 на модулях розширення. `schedule`: години 0-23 по днях, коли режим AUTO може запускати генератор.
+
+### POST /api/device/schedule
+Write the weekly scheduler / Записати тижневий графік. Requires `X-API-Key`.
+
+**Body / Тіло:** `{"schedule": {"mon": [6, 7, ..., 23], "sun": []}}` (any subset of days / будь-які дні)
+
+The listener reads the configuration block 512-639, changes only the scheduler words (546-559), unlocks the configuration like Rainbow Plus (8192), writes the block back with checksum 0 (the controller computes it) and reads it back: `success` only when the scheduler matches and all other words are unchanged.
+Listener читає блок конфігурації 512-639, змінює лише слова графіка (546-559), розблоковує конфігурацію як Rainbow Plus (8192), записує блок назад із контрольною сумою 0 (її рахує контролер) і читає назад: `success` лише якщо графік збігся, а решта слів не змінилася.
+
 ## Monitoring / Моніторинг
 
 ### PM2 Logs / Логи PM2

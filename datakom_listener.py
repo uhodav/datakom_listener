@@ -7,6 +7,7 @@ from datetime import datetime
 from decoder import decode_telemetry, decode_unknown_offsets
 from config import LISTENER_HOST, LISTENER_PORT, HEALTH_HEARTBEAT_SECONDS, CONTROL_HOST, CONTROL_PORT
 from control import MBUS_HEADER, link, mbus_frame_length, send_lock, serve_control
+import controller_io
 
 HOST = LISTENER_HOST
 PORT = LISTENER_PORT
@@ -298,6 +299,7 @@ def handle_connection(conn: socket.socket, addr):
             if link.ensure_attached(conn, addr):
                 update_health("Connected")
             link.flush_queued(conn)
+            controller_io.poll_after_packet()  # output states / functions / scheduler, background thread
             update_health(packet=True)
             data = conn.recv(4096)
 

@@ -305,12 +305,18 @@ def serve_control(host: str, port: int):
 def _handle_control_client(client: socket.socket):
     try:
         client.settimeout(5)
-        request = json.loads(client.recv(1024).decode("utf-8"))
+        request = json.loads(client.recv(16384).decode("utf-8"))
         client.settimeout(max(CONFIRM_TIMEOUT, CONTROL_QUEUE_WAIT) + 5)
         action = str(request.get("action", "")).lower()
         print(f"[CMD] Request {action.upper()} from {request.get('source', 'unknown')}")
         # Local control port only (not allowed by the API): read / write any registers, for testing
-        if action == "read":
+        if action in ("schedule_set", "io_refresh"):
+            import controller_io  # imports control: loaded on first use
+            if action == "schedule_set":
+                response = controller_io.set_schedule(request.get("schedule") or {})
+            else:
+                response = {"success": True, **controller_io.poll(force_config=True)}
+        elif action == "read":
             response = link.read_registers(int(request["register"]), int(request.get("count", 1)))
         elif action == "write_multi":
             response = link.write_registers(int(request["register"]), [int(v) for v in request["values"]])
